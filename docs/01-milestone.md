@@ -16,7 +16,7 @@ No web server yet. No async queue yet. One analysis at a time, synchronous.
 
 - Python 3.11+
 - `uv` (or `pip`)
-- TradingAgents cloned at `/Users/spuri/projects/TradingAgents`
+- TradingAgents (installed via `uv sync` — git dependency in `pyproject.toml`)
 - OpenAI (or other LLM provider) API key in `.env`
 
 ---

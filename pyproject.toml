@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "stocksage"
@@ -8,8 +8,7 @@ version = "0.1.0"
 description = "LLM-powered stock analysis with persistent history and trend tracking"
 requires-python = ">=3.11"
 dependencies = [
-    # TradingAgents must be installed as a local editable:
-    #   pip install -e /Users/spuri/projects/TradingAgents
+    "tradingagents @ git+https://github.com/TauricResearch/TradingAgents",
     "sqlalchemy>=2.0",
     "alembic>=1.13",
     "pydantic-settings>=2.0",

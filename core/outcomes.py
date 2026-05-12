@@ -1,9 +1,10 @@
 """Outcome resolution: fetch actual returns and generate reflections for past analyses."""
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Optional
 
+import pandas as pd
 import yfinance as yf
 from sqlalchemy.orm import Session
 
@@ -66,7 +67,7 @@ def resolve_pending(
 
         db.add(Outcome(
             analysis_id=analysis.id,
-            resolved_at=datetime.utcnow(),
+            resolved_at=datetime.now(UTC),
             raw_return=raw_ret,
             alpha_return=alpha_ret,
             holding_days=actual_days,
@@ -81,13 +82,24 @@ def resolve_pending(
 
 
 def _batch_fetch(tickers: list[str], start: str, end: str) -> dict:
-    """Download OHLCV for multiple tickers at once. Returns {ticker: DataFrame}."""
+    """Download OHLCV for multiple tickers at once. Returns {ticker: flat DataFrame}."""
     try:
-        data = yf.download(tickers, start=start, end=end, auto_adjust=True, progress=False)
         if len(tickers) == 1:
-            return {tickers[0]: data}
-        # multi-ticker download returns MultiIndex columns
-        return {t: data.xs(t, axis=1, level=1) for t in tickers if t in data.columns.get_level_values(1)}
+            # multi_level_index=False gives flat columns directly for a single ticker
+            data = yf.download(
+                tickers[0], start=start, end=end,
+                auto_adjust=True, progress=False, multi_level_index=False,
+            )
+            return {tickers[0]: data} if not data.empty else {}
+
+        data = yf.download(tickers, start=start, end=end, auto_adjust=True, progress=False)
+        if isinstance(data.columns, pd.MultiIndex):
+            return {
+                t: data.xs(t, axis=1, level=1)
+                for t in tickers
+                if t in data.columns.get_level_values(1)
+            }
+        return {}
     except Exception as e:
         logger.warning("Batch price fetch failed: %s", e)
         return {}
@@ -95,7 +107,11 @@ def _batch_fetch(tickers: list[str], start: str, end: str) -> dict:
 
 def _fetch_single(ticker: str, start: str, end: str):
     try:
-        return yf.Ticker(ticker).history(start=start, end=end, auto_adjust=True)
+        df = yf.Ticker(ticker).history(start=start, end=end, auto_adjust=True)
+        # history() returns a timezone-aware index; strip it so string comparisons work
+        if df.index.tz is not None:
+            df.index = df.index.tz_localize(None)
+        return df
     except Exception:
         return None
 

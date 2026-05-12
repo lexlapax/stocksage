@@ -27,7 +27,7 @@ def _set_sqlite_pragma(dbapi_conn, _connection_record):
         dbapi_conn.execute("PRAGMA foreign_keys=ON")
 
 
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+SessionLocal = sessionmaker(engine, autocommit=False, autoflush=False)
 
 
 def get_db() -> Generator[Session, None, None]:

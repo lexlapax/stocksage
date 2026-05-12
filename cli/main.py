@@ -2,7 +2,7 @@
 
 import json
 import sys
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 import click
 from rich.console import Console
@@ -52,7 +52,7 @@ def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
             )
             sys.exit(0)
 
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         row = Analysis(
             ticker=ticker,
             trade_date=parsed_date,
@@ -84,7 +84,7 @@ def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
     with SessionLocal() as db:
         row = db.get(Analysis, analysis_id)
         row.status = "completed"
-        row.completed_at = datetime.utcnow()
+        row.completed_at = datetime.now(UTC)
         row.rating = result.rating
         row.executive_summary = result.executive_summary
         row.investment_thesis = result.investment_thesis
