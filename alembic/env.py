@@ -4,9 +4,9 @@ from pathlib import Path
 # Ensure project root is on sys.path so imports resolve
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from alembic import context
 from config import settings
 from core.models import Base  # noqa: F401 — registers all models
 
@@ -20,8 +20,12 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url, target_metadata=target_metadata,
-                      literal_binds=True, dialect_opts={"paramstyle": "named"})
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
     with context.begin_transaction():
         context.run_migrations()
 

@@ -22,29 +22,37 @@ Full architecture and DB schema: `docs/plan.md`
 
 ## Current Status
 
-**Active milestone: 01 — CLI + Persistent Storage**  
-Detailed task list and acceptance criteria: `docs/01-milestone.md`
+**Active milestone: release prep after Milestone 02 implementation**
+Detailed task lists and acceptance criteria: `docs/01-milestone.md`, `docs/02-milestone.md`
 
-**What exists (scaffold only — not yet installed or smoke-tested):**
+**What exists:**
 - `config.py` — pydantic-settings; reads `.env`; builds tradingagents config dict
 - `core/models.py` — SQLAlchemy ORM: Analysis, AnalysisDetail, Outcome, AnalysisQueue
 - `core/db.py` — engine, SessionLocal, init_db()
 - `core/analyzer.py` — wraps TradingAgentsGraph; parses final_state into AnalysisResult
 - `core/outcomes.py` — batch yfinance return resolver + LLM reflection via tradingagents Reflector
-- `cli/main.py` — Click commands: analyze, resolve, summary, list
+- `core/trends.py` — ticker/model accuracy stats, rating calibration, trend helpers, cross-ticker lessons
+- `stocksage/cli.py` — Click commands: analyze, resolve, summary, list, leaderboard, models
+- `cli/main.py` — compatibility wrapper for `python -m cli.main`
 - `alembic/env.py` — migrations wired to Settings.database_url + core.models.Base
-- `core/trends.py` — stub (Milestone 02)
+- `tests/` — unit and CLI integration coverage for Milestone 01/02 behavior
 - `worker/runner.py` — stub (Milestone 03)
 
-**Next action:** Install dependencies and smoke-test end-to-end:
+**Next action:** Complete release validation:
 ```bash
-uv venv && source .venv/bin/activate
 uv sync
 cp .env.example .env   # set OPENAI_API_KEY (or preferred provider)
-uv run python -m cli.main analyze AAPL
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest
+uv run alembic upgrade head
+uv run stocksage analyze AAPL
+uv run stocksage resolve
+uv run stocksage summary AAPL
 ```
 
-**Update this section** whenever a milestone task is completed or the active milestone changes.
+Milestone 01/02 code is implemented and tested, but live TradingAgents analysis still requires a
+configured provider API key and a real smoke run before release.
 
 ---
 
@@ -62,15 +70,18 @@ uv run python -m cli.main analyze AAPL
 
 ## Before Every Commit
 
-1. Run the test suite: `uv run pytest`
-2. Fix any failures before committing — do not skip with `--no-verify`.
-3. If no tests exist yet for the code being changed, write at least one before committing.
+1. Run lint: `uv run ruff check .`
+2. Run format check: `uv run ruff format --check .`
+3. Run the test suite: `uv run pytest`
+4. Fix any failures before committing — do not skip with `--no-verify`.
+5. If no tests exist yet for the code being changed, write at least one before committing.
 
 ## Project Layout
 
 ```
+stocksage/  Import-safe package entry point for the CLI
 core/       ORM models, DB session, analyzer wrapper, outcome resolver, trends
-cli/        Click CLI commands (analyze, resolve, summary, list, leaderboard, models)
+cli/        Compatibility wrapper for python -m cli.main
 worker/     Async queue runner (Milestone 03+)
 api/        FastAPI app + routes + Pydantic schemas (Milestone 04+)
 web/        Jinja2 templates (Milestone 04+)
@@ -122,5 +133,5 @@ or incomplete.
 
 ## Milestones
 
-Current work is tracked in `docs/01-milestone.md`. Check off tasks as they are completed.
-Do not start Milestone 02 work until the Milestone 01 acceptance criteria are met.
+Current work is tracked in `docs/01-milestone.md` and `docs/02-milestone.md`. Check off tasks as
+they are completed. Do not start Milestone 03 until release validation for Milestones 01/02 is done.

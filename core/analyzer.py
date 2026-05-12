@@ -4,13 +4,12 @@ All imports of tradingagents are isolated here so the rest of the codebase
 never depends on the library directly.
 """
 
-import json
 import re
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional
 
-from config import Settings, settings as _default_settings
+from config import Settings
+from config import settings as _default_settings
 
 
 @dataclass
@@ -20,8 +19,8 @@ class AnalysisResult:
     rating: str
     executive_summary: str
     investment_thesis: str
-    price_target: Optional[float]
-    time_horizon: Optional[str]
+    price_target: float | None
+    time_horizon: str | None
     market_report: str
     sentiment_report: str
     news_report: str
@@ -57,8 +56,13 @@ def _parse_decision(text: str) -> dict:
 
     rating = rating_m.group(1).capitalize() if rating_m else "Hold"
     # Normalise to the 5-tier vocabulary
-    _normalise = {"buy": "Buy", "overweight": "Overweight", "hold": "Hold",
-                  "underweight": "Underweight", "sell": "Sell"}
+    _normalise = {
+        "buy": "Buy",
+        "overweight": "Overweight",
+        "hold": "Hold",
+        "underweight": "Underweight",
+        "sell": "Sell",
+    }
     rating = _normalise.get(rating.lower(), rating)
 
     return {
@@ -110,6 +114,10 @@ class Analyzer:
             risk_neutral=risk.get("neutral_history", ""),
             risk_decision=risk.get("judge_decision", ""),
             decision_text=decision_text,
-            full_state={k: v for k, v in final_state.items()
-                        if not hasattr(v, "__class__") or isinstance(v, (str, dict, list, float, int, bool, type(None)))},
+            full_state={
+                k: v
+                for k, v in final_state.items()
+                if not hasattr(v, "__class__")
+                or isinstance(v, (str, dict, list, float, int, bool, type(None)))
+            },
         )

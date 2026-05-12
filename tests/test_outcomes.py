@@ -1,7 +1,7 @@
 """Tests for outcome resolution logic (no live network calls)."""
 
 from datetime import UTC, date, datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -84,3 +84,44 @@ def test_resolve_pending_resolves_old_analysis(db):
     outcome = db.query(Outcome).filter_by(analysis_id=row.id).first()
     assert outcome is not None
     assert outcome.reflection == "reflection text"
+
+
+def test_resolve_pending_force_updates_existing_outcome(db):
+    old_date = date.today() - timedelta(days=20)
+    row = Analysis(
+        ticker="NVDA",
+        trade_date=old_date,
+        run_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+        status="completed",
+        rating="Buy",
+        investment_thesis="Some thesis.",
+    )
+    db.add(row)
+    db.flush()
+    db.add(
+        Outcome(
+            analysis_id=row.id,
+            resolved_at=datetime.now(UTC),
+            raw_return=-0.10,
+            alpha_return=-0.10,
+            holding_days=5,
+            reflection="old reflection",
+        )
+    )
+    db.commit()
+
+    stock_df = _make_price_df(200.0, start=str(old_date))
+    spy_df = _make_price_df(400.0, start=str(old_date))
+
+    with (
+        patch("core.outcomes._batch_fetch", return_value={"NVDA": stock_df}),
+        patch("core.outcomes._fetch_single", return_value=spy_df),
+        patch("core.outcomes._generate_reflection", return_value="new reflection"),
+    ):
+        count = resolve_pending(db, force=True)
+
+    assert count == 1
+    outcome = db.query(Outcome).filter_by(analysis_id=row.id).one()
+    assert outcome.raw_return > 0
+    assert outcome.reflection == "new reflection"

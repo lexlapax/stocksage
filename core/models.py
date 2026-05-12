@@ -4,7 +4,15 @@ from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy import (
-    Date, DateTime, Float, ForeignKey, Integer, MetaData, String, Text, UniqueConstraint,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -31,21 +39,21 @@ class Analysis(Base):
     ticker: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     trade_date: Mapped[date] = mapped_column(Date, nullable=False)
     run_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # queued | running | completed | failed
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
     # Portfolio Manager structured fields
-    rating: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
-    executive_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    investment_thesis: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    price_target: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    time_horizon: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    rating: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    executive_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    investment_thesis: Mapped[str | None] = mapped_column(Text, nullable=True)
+    price_target: Mapped[float | None] = mapped_column(Float, nullable=True)
+    time_horizon: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # LLM provenance
-    llm_provider: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    deep_model: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    quick_model: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    llm_provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    deep_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    quick_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Error tracking
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     detail: Mapped[Optional["AnalysisDetail"]] = relationship(
         back_populates="analysis", uselist=False, cascade="all, delete-orphan"
@@ -62,19 +70,19 @@ class AnalysisDetail(Base):
     analysis_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("analyses.id", ondelete="CASCADE"), nullable=False, unique=True
     )
-    market_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    sentiment_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    news_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    fundamentals_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    bull_history: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    bear_history: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    research_decision: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    trader_plan: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    risk_aggressive: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    risk_conservative: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    risk_neutral: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    risk_decision: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    full_state_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    market_report: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sentiment_report: Mapped[str | None] = mapped_column(Text, nullable=True)
+    news_report: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fundamentals_report: Mapped[str | None] = mapped_column(Text, nullable=True)
+    bull_history: Mapped[str | None] = mapped_column(Text, nullable=True)
+    bear_history: Mapped[str | None] = mapped_column(Text, nullable=True)
+    research_decision: Mapped[str | None] = mapped_column(Text, nullable=True)
+    trader_plan: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risk_aggressive: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risk_conservative: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risk_neutral: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risk_decision: Mapped[str | None] = mapped_column(Text, nullable=True)
+    full_state_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     analysis: Mapped["Analysis"] = relationship(back_populates="detail")
 
@@ -90,7 +98,7 @@ class Outcome(Base):
     raw_return: Mapped[float] = mapped_column(Float, nullable=False)
     alpha_return: Mapped[float] = mapped_column(Float, nullable=False)
     holding_days: Mapped[int] = mapped_column(Integer, nullable=False)
-    reflection: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reflection: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     analysis: Mapped["Analysis"] = relationship(back_populates="outcome")
 
@@ -103,6 +111,6 @@ class AnalysisQueue(Base):
     trade_date: Mapped[date] = mapped_column(Date, nullable=False)
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     queued_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    analysis_id: Mapped[Optional[int]] = mapped_column(
+    analysis_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("analyses.id"), nullable=True
     )

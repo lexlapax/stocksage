@@ -10,6 +10,15 @@ A working command-line tool that:
 
 No web server yet. No async queue yet. One analysis at a time, synchronous.
 
+## Status
+
+**Code complete.** The CLI, database models, Alembic migration, analyzer wrapper, outcome
+resolver, and automated tests are in place.
+
+**Remaining before declaring the milestone fully accepted:** run a live `stocksage analyze`
+smoke test with a configured `.env` and valid LLM provider API key, then verify rows are
+written from a real TradingAgents run.
+
 ---
 
 ## Prerequisites
@@ -25,12 +34,13 @@ No web server yet. No async queue yet. One analysis at a time, synchronous.
 
 ### T01 · Project scaffold
 
-- [ ] `pyproject.toml` — project metadata, dependencies, scripts entry point
-- [ ] `.env.example` — document every env var
-- [ ] `config.py` — `pydantic-settings` `Settings` class; reads from `.env` + env vars
-- [ ] `README.md` — setup steps, usage examples
-- [ ] `.gitignore` — exclude `.env`, `*.db`, `__pycache__`, `.venv`
-- [ ] `alembic.ini` + `alembic/env.py` — point at `core.db.Base.metadata` and `DATABASE_URL`
+- [x] `pyproject.toml` — project metadata, dependencies, scripts entry point
+- [x] `.env.example` — document every env var
+- [x] `config.py` — `pydantic-settings` `Settings` class; reads from `.env` + env vars
+- [x] `README.md` — setup steps, usage examples
+- [x] `.gitignore` — exclude `.env`, `*.db`, `__pycache__`, `.venv`, `.ruff_cache`
+- [x] `alembic.ini` + `alembic/env.py` — point at `core.db.Base.metadata` and `DATABASE_URL`
+- [x] Ruff lint/format configuration for before-commit checks
 
 **Key `config.py` fields:**
 ```python
@@ -46,6 +56,8 @@ class Settings(BaseSettings):
     cache_dir: Path         # stocksage_data_dir / "cache"
     memory_log_path: Path   # stocksage_data_dir / "memory" / "trading_memory.md"
 ```
+
+**Status:** Done.
 
 ---
 
@@ -91,6 +103,8 @@ class AnalysisQueue(Base):
 **Important:** Use `UniqueConstraint("ticker", "trade_date")` on `analyses` so the same
 ticker+date cannot be analyzed twice accidentally.
 
+**Status:** Done in `core/models.py`.
+
 ---
 
 ### T03 · Database session factory (`core/db.py`)
@@ -108,6 +122,8 @@ def init_db() -> None:
 
 Alembic `env.py` must import `Base` from `core.models` so auto-generated migrations see all tables.
 
+**Status:** Done in `core/db.py` and `alembic/env.py`.
+
 ---
 
 ### T04 · Alembic initial migration
@@ -121,6 +137,8 @@ alembic upgrade head
 
 The revision file goes in `alembic/versions/`. Commit it. Every future schema change gets its own
 revision — this is how we migrate to PostgreSQL later without pain.
+
+**Status:** Done. Initial revision: `58f29d25c05c_initial_schema.py`.
 
 ---
 
@@ -167,6 +185,8 @@ class AnalysisResult:
 `**Executive Summary**:`, `**Investment Thesis**:` markers. Use regex or a small parser to extract
 structured fields. Fall back to storing the full text in `investment_thesis` if parsing fails.
 
+**Status:** Done in `core/analyzer.py`, with tests in `tests/test_analyzer.py`.
+
 ---
 
 ### T06 · Outcome resolver (`core/outcomes.py`)
@@ -196,15 +216,18 @@ def _generate_reflection(decision_text: str, raw: float, alpha: float,
     # or a direct LLM client call
 ```
 
+**Status:** Done in `core/outcomes.py`, including batched fetches, fallback reflection text, and
+`--force` re-resolution support.
+
 ---
 
-### T07 · CLI (`cli/main.py`)
+### T07 · CLI (`stocksage/cli.py`)
 
 Use `click`. Four commands:
 
 #### `analyze`
 ```
-python -m cli.main analyze TICKER [--date YYYY-MM-DD] [--debug]
+stocksage analyze TICKER [--date YYYY-MM-DD] [--debug]
 ```
 1. `init_db()` (idempotent)
 2. Check for existing completed analysis for this ticker+date; skip if found (print message)
@@ -216,13 +239,13 @@ python -m cli.main analyze TICKER [--date YYYY-MM-DD] [--debug]
 
 #### `resolve`
 ```
-python -m cli.main resolve [--holding-days N]
+stocksage resolve [--holding-days N]
 ```
 Calls `resolve_pending(db, settings)`. Prints count resolved.
 
 #### `summary TICKER`
 ```
-python -m cli.main summary TICKER [--n 10]
+stocksage summary TICKER [--n 10]
 ```
 Queries last N completed analyses for ticker. Prints table:
 ```
@@ -233,18 +256,25 @@ Date        Rating       Raw Ret   Alpha   Reflection
 
 #### `list`
 ```
-python -m cli.main list [--status completed|failed|queued] [--ticker AAPL]
+stocksage list [--status completed|failed|queued] [--ticker AAPL]
 ```
 Tabular output of recent analyses.
+
+**Status:** Done in `stocksage/cli.py`, with `cli/main.py` kept as a compatibility wrapper.
+`analyze --force` now reuses the existing analysis row safely instead of violating the
+`ticker + trade_date` unique constraint.
 
 ---
 
 ### T08 · Wire everything together
 
-- `cli/main.py` imports from `core.db`, `core.analyzer`, `core.outcomes`
+- `stocksage/cli.py` imports from `core.db`, `core.analyzer`, `core.outcomes`, `core.trends`
+- `cli/main.py` remains as a compatibility wrapper for `python -m cli.main`
 - `config.py` is the single source of truth for all paths and credentials
 - `init_db()` is called at the top of every CLI command (idempotent via `create_all`)
 - `.env` is loaded via `pydantic-settings` automatically on `Settings()` instantiation
+
+**Status:** Done.
 
 ---
 
@@ -252,12 +282,15 @@ Tabular output of recent analyses.
 
 Not a full test suite — just verify the wiring:
 ```bash
-python -m cli.main analyze AAPL
-python -m cli.main list
-python -m cli.main resolve
-python -m cli.main summary AAPL
+uv run stocksage analyze AAPL
+uv run stocksage list
+uv run stocksage resolve
+uv run stocksage summary AAPL
 ```
 Check that `stocksage.db` has rows in `analyses` and `analysis_details`.
+
+**Status:** Partially done. Automated tests pass and CLI help/import smoke checks pass. Remaining:
+run the live `stocksage analyze AAPL` command after `.env` contains a valid provider API key.
 After waiting 7 trading days, run `resolve` again and verify an `outcomes` row appears.
 
 ---
@@ -271,7 +304,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 
 dependencies = [
-    "tradingagents",            # local editable: pip install -e /path/to/TradingAgents
+    "tradingagents @ git+https://github.com/TauricResearch/TradingAgents",
     "sqlalchemy>=2.0",
     "alembic>=1.13",
     "pydantic-settings>=2.0",
@@ -283,23 +316,31 @@ dependencies = [
 ]
 
 [project.scripts]
-stocksage = "cli.main:cli"
+stocksage = "stocksage.cli:cli"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.12",
+]
 ```
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] `python -m cli.main analyze AAPL` completes without error
-- [ ] `stocksage.db` contains rows in `analyses` and `analysis_details`
-- [ ] Re-running the same ticker+date prints "already analyzed" and skips
-- [ ] `python -m cli.main list` prints the completed analysis
-- [ ] `python -m cli.main resolve` runs without error (may resolve 0 if analysis is too recent)
-- [ ] `python -m cli.main summary AAPL` prints the rating and any resolved outcome
-- [ ] A failed analysis (bad ticker, API error) sets `status="failed"` with `error_message`
+- [ ] `stocksage analyze AAPL` completes without error against a real configured LLM provider
+- [ ] `stocksage.db` contains rows in `analyses` and `analysis_details` from a real analysis
+- [x] Re-running the same ticker+date prints "already analyzed" and skips
+- [x] `stocksage list` runs without error
+- [x] `stocksage resolve` runs without error (may resolve 0 if analysis is too recent)
+- [x] `stocksage summary AAPL` runs without error; seeded tests cover trend output
+- [x] A failed analysis path sets `status="failed"` with `error_message`
+- [x] `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest` pass
 
 ---
 
@@ -312,6 +353,7 @@ stocksage/
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── CHANGELOG.md
 ├── alembic.ini
 ├── alembic/
 │   ├── env.py
@@ -323,7 +365,10 @@ stocksage/
 │   ├── db.py
 │   ├── analyzer.py
 │   └── outcomes.py
+├── stocksage/
+│   ├── __init__.py
+│   └── cli.py
 └── cli/
     ├── __init__.py
-    └── main.py
+    └── main.py                         (compatibility wrapper)
 ```

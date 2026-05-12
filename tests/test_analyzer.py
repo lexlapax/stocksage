@@ -5,8 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from core.analyzer import Analyzer, AnalysisResult, _parse_decision
-
+from core.analyzer import AnalysisResult, Analyzer, _parse_decision
 
 SAMPLE_DECISION = """
 **Rating**: Buy

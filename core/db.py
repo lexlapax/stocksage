@@ -19,6 +19,7 @@ def _make_engine(url: str) -> Engine:
 
 engine = _make_engine(settings.database_url)
 
+
 # Enable WAL mode for SQLite so readers don't block writers.
 @event.listens_for(engine, "connect")
 def _set_sqlite_pragma(dbapi_conn, _connection_record):

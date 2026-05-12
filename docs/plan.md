@@ -14,7 +14,7 @@ grows into a web application without architectural rewrites.
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Database | SQLite (dev) → PostgreSQL (prod) | SQLAlchemy abstraction; `db.py` and Alembic migrations isolate the switch |
-| TradingAgents dependency | Local editable install (`pip install -e`) | Lets upstream changes be pulled without a publish step |
+| TradingAgents dependency | Git dependency managed by `uv` | Keeps installs reproducible through `uv.lock` while tracking the upstream project |
 | Web frontend | Jinja2 + HTMX | No build toolchain; server-rendered HTML with partial updates is sufficient for one-user scale |
 | Async jobs | Thread/process pool (`concurrent.futures`) | Avoids Celery/Redis overhead; sufficient for personal use |
 | Project root | `/Users/spuri/projects/lexlapax/stocksage` | Adjacent to other lexlapax projects |
@@ -141,6 +141,9 @@ stocksage/
 │   ├── plan.md                ← this file
 │   ├── 01-milestone.md        ← Phase 1 detailed tasks
 │   └── 02-milestone.md        ← Phase 2 detailed tasks
+├── stocksage/
+│   ├── __init__.py
+│   └── cli.py                 ← Click commands and console script entry point
 ├── core/
 │   ├── __init__.py
 │   ├── analyzer.py            ← TradingAgentsGraph wrapper
@@ -150,7 +153,7 @@ stocksage/
 │   └── trends.py              ← accuracy metrics, trending (Phase 2)
 ├── cli/
 │   ├── __init__.py
-│   └── main.py                ← Click commands: analyze, queue, summary, resolve
+│   └── main.py                ← compatibility wrapper for python -m cli.main
 ├── worker/
 │   ├── __init__.py
 │   └── runner.py              ← thread pool queue poller (Phase 1 end / Phase 2)
@@ -213,19 +216,23 @@ TRADINGAGENTS_MEMORY_LOG_PATH=~/.stocksage/memory/trading_memory.md
 
 ```bash
 cd /Users/spuri/projects/lexlapax/stocksage
-uv venv && source .venv/bin/activate
-pip install -e .
-pip install -e /Users/spuri/projects/TradingAgents   # local editable
+uv venv
+uv sync
+uv run alembic upgrade head
 
 # First run — creates DB and tables
-python -m cli.main analyze AAPL
+uv run stocksage analyze AAPL
 
 # Analyze with a specific date
-python -m cli.main analyze AAPL --date 2026-05-01
+uv run stocksage analyze AAPL --date 2026-05-01
 
 # Resolve outcomes for pending analyses
-python -m cli.main resolve
+uv run stocksage resolve
 
 # Print history for a ticker
-python -m cli.main summary AAPL
+uv run stocksage summary AAPL
+
+# Rank tickers and compare model performance
+uv run stocksage leaderboard
+uv run stocksage models
 ```

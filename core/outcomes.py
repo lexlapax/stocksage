@@ -1,45 +1,89 @@
 """Outcome resolution: fetch actual returns and generate reflections for past analyses."""
 
 import logging
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Optional
 
 import pandas as pd
 import yfinance as yf
 from sqlalchemy.orm import Session
 
-from config import Settings, settings as _default_settings
+from config import Settings
+from config import settings as _default_settings
 from core.models import Analysis, Outcome
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ResolutionReport:
+    resolved: int
+    attempted: int
+    too_recent: int
+    already_resolved: int
+    insufficient_price_data: int
+
+
 def resolve_pending(
     db: Session,
     cfg: Settings = _default_settings,
-    holding_days: Optional[int] = None,
+    holding_days: int | None = None,
+    force: bool = False,
 ) -> int:
+    return resolve_pending_report(db, cfg, holding_days, force=force).resolved
+
+
+def resolve_pending_report(
+    db: Session,
+    cfg: Settings = _default_settings,
+    holding_days: int | None = None,
+    force: bool = False,
+) -> ResolutionReport:
     """Resolve all completed analyses that have no Outcome yet.
 
     Only processes analyses whose trade_date is old enough that `holding_days`
-    of price data is available. Returns the count of newly resolved analyses.
+    of price data is available.
     """
     days = holding_days or cfg.outcome_holding_days
     cutoff = date.today() - timedelta(days=days + 3)  # buffer for weekends
 
-    pending: list[Analysis] = (
+    too_recent = (
+        db.query(Analysis)
+        .outerjoin(Outcome)
+        .filter(
+            Analysis.status == "completed",
+            Analysis.trade_date > cutoff,
+            Outcome.id.is_(None),
+        )
+        .count()
+    )
+    already_resolved = (
+        0
+        if force
+        else (db.query(Analysis).join(Outcome).filter(Analysis.status == "completed").count())
+    )
+
+    query = (
         db.query(Analysis)
         .outerjoin(Outcome)
         .filter(
             Analysis.status == "completed",
             Analysis.trade_date <= cutoff,
-            Outcome.id.is_(None),
         )
-        .all()
     )
+    if not force:
+        query = query.filter(Outcome.id.is_(None))
+
+    pending: list[Analysis] = query.all()
 
     if not pending:
-        return 0
+        return ResolutionReport(
+            resolved=0,
+            attempted=0,
+            too_recent=too_recent,
+            already_resolved=already_resolved,
+            insufficient_price_data=0,
+        )
 
     # Batch yfinance fetch: gather unique tickers + shared date window
     tickers = list({a.ticker for a in pending})
@@ -51,10 +95,16 @@ def resolve_pending(
     spy_prices = _fetch_single("SPY", str(min_date), str(end_date + timedelta(days=1)))
 
     resolved = 0
+    insufficient = 0
     for analysis in pending:
-        result = _compute_returns(analysis.ticker, str(analysis.trade_date), days, prices, spy_prices)
+        result = _compute_returns(
+            analysis.ticker, str(analysis.trade_date), days, prices, spy_prices
+        )
         if result is None:
-            logger.debug("Returns not yet available for %s on %s", analysis.ticker, analysis.trade_date)
+            logger.debug(
+                "Returns not yet available for %s on %s", analysis.ticker, analysis.trade_date
+            )
+            insufficient += 1
             continue
 
         raw_ret, alpha_ret, actual_days = result
@@ -65,20 +115,35 @@ def resolve_pending(
             cfg=cfg,
         )
 
-        db.add(Outcome(
-            analysis_id=analysis.id,
-            resolved_at=datetime.now(UTC),
-            raw_return=raw_ret,
-            alpha_return=alpha_ret,
-            holding_days=actual_days,
-            reflection=reflection,
-        ))
+        if analysis.outcome is None:
+            db.add(
+                Outcome(
+                    analysis_id=analysis.id,
+                    resolved_at=datetime.now(UTC),
+                    raw_return=raw_ret,
+                    alpha_return=alpha_ret,
+                    holding_days=actual_days,
+                    reflection=reflection,
+                )
+            )
+        else:
+            analysis.outcome.resolved_at = datetime.now(UTC)
+            analysis.outcome.raw_return = raw_ret
+            analysis.outcome.alpha_return = alpha_ret
+            analysis.outcome.holding_days = actual_days
+            analysis.outcome.reflection = reflection
         resolved += 1
 
     if resolved:
         db.commit()
 
-    return resolved
+    return ResolutionReport(
+        resolved=resolved,
+        attempted=len(pending),
+        too_recent=too_recent,
+        already_resolved=already_resolved,
+        insufficient_price_data=insufficient,
+    )
 
 
 def _batch_fetch(tickers: list[str], start: str, end: str) -> dict:
@@ -87,8 +152,12 @@ def _batch_fetch(tickers: list[str], start: str, end: str) -> dict:
         if len(tickers) == 1:
             # multi_level_index=False gives flat columns directly for a single ticker
             data = yf.download(
-                tickers[0], start=start, end=end,
-                auto_adjust=True, progress=False, multi_level_index=False,
+                tickers[0],
+                start=start,
+                end=end,
+                auto_adjust=True,
+                progress=False,
+                multi_level_index=False,
             )
             return {tickers[0]: data} if not data.empty else {}
 
@@ -122,7 +191,7 @@ def _compute_returns(
     holding_days: int,
     prices: dict,
     spy_prices,
-) -> Optional[tuple[float, float, int]]:
+) -> tuple[float, float, int] | None:
     df = prices.get(ticker)
     if df is None or spy_prices is None:
         return None
@@ -141,9 +210,7 @@ def _compute_returns(
     raw = float(
         (stock["Close"].iloc[actual_days] - stock["Close"].iloc[0]) / stock["Close"].iloc[0]
     )
-    spy_ret = float(
-        (spy["Close"].iloc[actual_days] - spy["Close"].iloc[0]) / spy["Close"].iloc[0]
-    )
+    spy_ret = float((spy["Close"].iloc[actual_days] - spy["Close"].iloc[0]) / spy["Close"].iloc[0])
     return raw, raw - spy_ret, actual_days
 
 
@@ -175,8 +242,9 @@ def _generate_reflection(
     except Exception as e:
         logger.warning("LLM reflection failed, using template: %s", e)
         direction = "up" if raw_return > 0 else "down"
-        correct = (raw_return > 0 and "buy" in decision_text.lower()) or \
-                  (raw_return < 0 and "sell" in decision_text.lower())
+        correct = (raw_return > 0 and "buy" in decision_text.lower()) or (
+            raw_return < 0 and "sell" in decision_text.lower()
+        )
         verdict = "correct" if correct else "incorrect"
         return (
             f"Stock moved {direction} {raw_return:+.1%} ({alpha_return:+.1%} vs SPY). "

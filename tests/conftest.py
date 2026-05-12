@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from core.models import Analysis, AnalysisDetail, Base, Outcome
+from core.models import Analysis, AnalysisDetail, Base
 
 
 @pytest.fixture(scope="function")
@@ -18,6 +18,7 @@ def db():
     yield session
     session.close()
     Base.metadata.drop_all(bind=engine)
+    engine.dispose()
 
 
 @pytest.fixture
