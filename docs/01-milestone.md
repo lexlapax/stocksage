@@ -12,19 +12,19 @@ No web server yet. No async queue yet. One analysis at a time, synchronous.
 
 ## Status
 
-**Code complete.** The CLI, database models, Alembic migration, analyzer wrapper, outcome
-resolver, and automated tests are in place.
+**Accepted.** The CLI, database models, Alembic migration, analyzer wrapper, outcome resolver,
+Ruff checks, automated tests, and live TradingAgents smoke test are complete.
 
-**Remaining before declaring the milestone fully accepted:** run a live `stocksage analyze`
-smoke test with a configured `.env` and valid LLM provider API key, then verify rows are
-written from a real TradingAgents run.
+Live validation completed with `stocksage analyze AAPL` on 2026-05-12. The run persisted a
+completed `Analysis` row with an `AnalysisDetail`, and `stocksage resolve` correctly reported it
+as too recent for outcome resolution.
 
 ---
 
 ## Prerequisites
 
 - Python 3.11+
-- `uv` (or `pip`)
+- `uv`
 - TradingAgents (installed via `uv sync` — git dependency in `pyproject.toml`)
 - OpenAI (or other LLM provider) API key in `.env`
 
@@ -37,7 +37,9 @@ written from a real TradingAgents run.
 - [x] `pyproject.toml` — project metadata, dependencies, scripts entry point
 - [x] `.env.example` — document every env var
 - [x] `config.py` — `pydantic-settings` `Settings` class; reads from `.env` + env vars
-- [x] `README.md` — setup steps, usage examples
+- [x] `README.md` — concise project orientation
+- [x] `docs/getting-started.md` — setup steps, configuration, usage examples
+- [x] `docs/development.md` — development workflow and quality checks
 - [x] `.gitignore` — exclude `.env`, `*.db`, `__pycache__`, `.venv`, `.ruff_cache`
 - [x] `alembic.ini` + `alembic/env.py` — point at `core.db.Base.metadata` and `DATABASE_URL`
 - [x] Ruff lint/format configuration for before-commit checks
@@ -289,9 +291,9 @@ uv run stocksage summary AAPL
 ```
 Check that `stocksage.db` has rows in `analyses` and `analysis_details`.
 
-**Status:** Partially done. Automated tests pass and CLI help/import smoke checks pass. Remaining:
-run the live `stocksage analyze AAPL` command after `.env` contains a valid provider API key.
-After waiting 7 trading days, run `resolve` again and verify an `outcomes` row appears.
+**Status:** Done. Automated tests pass, CLI help/import smoke checks pass, and a live AAPL
+TradingAgents run completed and persisted. The same-day AAPL run is intentionally too recent for
+outcome resolution.
 
 ---
 
@@ -333,8 +335,8 @@ dev = [
 
 ## Acceptance Criteria
 
-- [ ] `stocksage analyze AAPL` completes without error against a real configured LLM provider
-- [ ] `stocksage.db` contains rows in `analyses` and `analysis_details` from a real analysis
+- [x] `stocksage analyze AAPL` completes without error against a real configured LLM provider
+- [x] `stocksage.db` contains rows in `analyses` and `analysis_details` from a real analysis
 - [x] Re-running the same ticker+date prints "already analyzed" and skips
 - [x] `stocksage list` runs without error
 - [x] `stocksage resolve` runs without error (may resolve 0 if analysis is too recent)
@@ -354,6 +356,9 @@ stocksage/
 ├── .gitignore
 ├── README.md
 ├── CHANGELOG.md
+├── docs/
+│   ├── getting-started.md
+│   └── development.md
 ├── alembic.ini
 ├── alembic/
 │   ├── env.py

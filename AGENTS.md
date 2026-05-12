@@ -14,16 +14,23 @@ outcome tracking, and a web UI. The core loop is:
 4. After ~5 trading days, `core/outcomes.py` fetches actual returns from yfinance, generates
    an LLM reflection, and writes an `Outcome` row
 5. `core/trends.py` (Milestone 02) computes accuracy metrics and surfaces patterns over time
-6. A FastAPI + Jinja2/HTMX web UI (Milestone 04) presents history, trends, and new query forms
+6. Milestone 03 will correct accuracy semantics and sync resolved DB lessons into TradingAgents
+   memory
+7. Milestone 04 will make batch analysis reliable through the async queue/worker
+8. Milestone 05 will add the FastAPI + Jinja2/HTMX web UI and charts
 
-Full architecture and DB schema: `docs/plan.md`
+Human-facing orientation starts in `README.md`. Local setup and CLI usage live in
+`docs/getting-started.md`; development workflow lives in `docs/development.md`. Full architecture
+and DB schema: `docs/plan.md`
 
 ---
 
 ## Current Status
 
-**Active milestone: release prep after Milestone 02 implementation**
-Detailed task lists and acceptance criteria: `docs/01-milestone.md`, `docs/02-milestone.md`
+**Active milestone: 03 — Accuracy Semantics + TradingAgents Memory Sync**
+Detailed task lists and acceptance criteria:
+`docs/01-milestone.md`, `docs/02-milestone.md`, `docs/03-milestone.md`,
+`docs/04-milestone.md`, `docs/05-milestone.md`
 
 **What exists:**
 - `config.py` — pydantic-settings; reads `.env`; builds tradingagents config dict
@@ -36,23 +43,23 @@ Detailed task lists and acceptance criteria: `docs/01-milestone.md`, `docs/02-mi
 - `cli/main.py` — compatibility wrapper for `python -m cli.main`
 - `alembic/env.py` — migrations wired to Settings.database_url + core.models.Base
 - `tests/` — unit and CLI integration coverage for Milestone 01/02 behavior
-- `worker/runner.py` — stub (Milestone 03)
+- `worker/runner.py` — stub (Milestone 04)
+- `docs/getting-started.md` — local setup, configuration, and CLI usage
+- `docs/development.md` — development workflow, checks, and docs maintenance
+- `docs/03-milestone.md` — planned alpha-aware accuracy and memory sync work
+- `docs/04-milestone.md` — planned async queue + worker work
+- `docs/05-milestone.md` — planned web UI + charts work
 
-**Next action:** Complete release validation:
+**Next action:** Implement Milestone 03:
 ```bash
-uv sync
-cp .env.example .env   # set OPENAI_API_KEY (or preferred provider)
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
-uv run alembic upgrade head
-uv run stocksage analyze AAPL
-uv run stocksage resolve
-uv run stocksage summary AAPL
 ```
 
-Milestone 01/02 code is implemented and tested, but live TradingAgents analysis still requires a
-configured provider API key and a real smoke run before release.
+Milestone 01 is accepted after a live AAPL TradingAgents smoke run. Milestone 02 is accepted after
+a 20-stock resolved validation batch, with raw-vs-alpha accuracy and memory sync follow-ups moved
+to Milestone 03.
 
 ---
 
@@ -82,11 +89,11 @@ configured provider API key and a real smoke run before release.
 stocksage/  Import-safe package entry point for the CLI
 core/       ORM models, DB session, analyzer wrapper, outcome resolver, trends
 cli/        Compatibility wrapper for python -m cli.main
-worker/     Async queue runner (Milestone 03+)
-api/        FastAPI app + routes + Pydantic schemas (Milestone 04+)
-web/        Jinja2 templates (Milestone 04+)
+worker/     Async queue runner (Milestone 04)
+api/        FastAPI app + routes + Pydantic schemas (Milestone 05)
+web/        Jinja2 templates (Milestone 05)
 alembic/    DB migrations — every schema change gets its own revision
-docs/       plan.md, 01-milestone.md, 02-milestone.md
+docs/       plan.md, getting-started.md, development.md, and milestone docs 01-05
 ```
 
 ## Database Rules
@@ -110,7 +117,7 @@ to fetch current documentation. Do not rely on training-data knowledge for:
 - Click command/option signatures
 - yfinance download API (column structure changes between releases)
 - LangGraph / LangChain APIs used inside TradingAgents
-- FastAPI routing, dependency injection, and Pydantic schemas (Milestones 04+)
+- FastAPI routing, dependency injection, and Pydantic schemas (Milestone 05+)
 
 Steps: call `resolve-library-id` with the library name, then `query-docs` with the
 specific question. Use `researchMode: true` on a second call if the first answer is stale
@@ -133,5 +140,5 @@ or incomplete.
 
 ## Milestones
 
-Current work is tracked in `docs/01-milestone.md` and `docs/02-milestone.md`. Check off tasks as
-they are completed. Do not start Milestone 03 until release validation for Milestones 01/02 is done.
+Current work is tracked in `docs/03-milestone.md`. Check off tasks as they are completed. Do not
+start Milestone 04 until Milestone 03 is accepted.

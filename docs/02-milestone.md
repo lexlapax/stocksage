@@ -15,11 +15,18 @@ No web server yet. Everything is exposed through new CLI commands and a structur
 
 ## Status
 
-**Code complete.** The trend dataclasses/functions, enhanced `summary`, `leaderboard`, `models`,
-cross-ticker lessons, resolve status reporting, and automated tests are implemented.
+**Accepted with follow-up findings.** The trend dataclasses/functions, enhanced `summary`,
+`leaderboard`, `models`, cross-ticker lessons, resolve status reporting, and automated tests are
+implemented and validated against a real 20-stock resolved batch.
 
-**Remaining before declaring the milestone fully accepted:** validate the output against a real
-dataset with at least 10-20 resolved analyses.
+Validation result: 20 resolved analyses, `openai/gpt-5.4`, raw-direction accuracy 50%, average
+alpha +2.9%. The batch exposed two important follow-ups for Milestone 03:
+
+- Raw-direction accuracy is too blunt for relative allocation ratings such as Overweight and
+  Underweight. PLTR was Underweight with positive raw return but slightly negative alpha, which
+  should count differently under a portfolio-relative metric.
+- StockSage DB outcomes are not yet synced back into TradingAgents' markdown memory log, so future
+  analyses do not automatically consume the resolved lessons.
 
 ---
 
@@ -256,8 +263,9 @@ test = ["pytest>=8.0", "pytest-cov>=5.0"]
 - [x] `get_cross_ticker_lessons()` returns formatted string usable as LLM prompt context
 - [x] Ruff lint and format checks pass before release prep
 
-**Remaining validation:** run these commands against a real DB with multiple resolved outcomes
-once Milestone 01 has produced enough live analyses.
+**Validation note:** completed against a 20-stock batch. The accepted baseline is useful for
+visibility, but Milestone 03 must make accuracy semantics alpha-aware before using leaderboard
+rankings as a model-quality signal.
 
 ---
 
@@ -284,13 +292,8 @@ tests/
 
 ## Notes for Future Milestones
 
-- Milestone 03 (Async Queue): The worker polls `analysis_queue`, runs `Analyzer.run()` in a
-  `ThreadPoolExecutor`, and writes results via the same `core/db.py` session. The trends module
-  is already DB-native so nothing changes there.
-
-- Milestone 04 (Web UI): FastAPI routes will call `get_ticker_stats()`, `get_all_ticker_stats()`,
-  and `get_model_stats()` directly. The Jinja2 templates receive these dataclasses as template
-  context. No additional data layer needed.
-
-- Milestone 05 (Charts): `accuracy_trend` already returns `list[tuple[date, float]]` — the web
-  layer just needs to serialize it to JSON for the chart library (Chart.js or similar).
+- Next: `docs/03-milestone.md` corrects accuracy semantics and syncs DB outcomes back into
+  TradingAgents memory.
+- After that: `docs/04-milestone.md` introduces the async queue/worker so batch runs no longer
+  require shell loops.
+- Web UI and charts are tracked together in `docs/05-milestone.md`.

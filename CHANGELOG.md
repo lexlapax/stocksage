@@ -15,6 +15,8 @@ All notable changes to StockSage are tracked here.
 - Trend analytics for ticker accuracy, rating calibration, model performance, rolling accuracy, and cross-ticker lessons.
 - Unit and CLI integration tests covering analyzer parsing, ORM relationships, outcome resolution, trend analytics, and forced reruns.
 - Ruff linting and formatting checks configured in `pyproject.toml`.
+- Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, and M05 web UI/charts.
+- Focused docs for local setup/CLI usage and development workflow.
 
 ### Changed
 
@@ -22,9 +24,11 @@ All notable changes to StockSage are tracked here.
 - `summary` now shows resolved counts, directional accuracy, average returns, rating breakdowns, trend markers, and recent outcome correctness.
 - Project setup documentation now uses `uv` consistently.
 - The `stocksage` console script now points at `stocksage.cli:cli` to avoid collisions with third-party `cli` packages.
+- Milestone docs now mark M01 and M02 accepted after live validation and move raw-vs-alpha accuracy plus memory sync into M03.
+- `README.md` is now a concise project front door, with operational details moved to `docs/getting-started.md` and `docs/development.md`.
 
 ### Known Gaps
 
-- Live TradingAgents analysis smoke testing still requires a configured `.env` with a valid provider API key.
-- Milestone 02 analytics need a real resolved-analysis dataset before their output can be empirically validated.
-- Async worker and web UI remain planned for later milestones.
+- M03 must make accuracy semantics alpha-aware before leaderboard rankings are treated as model-quality signal.
+- Resolved DB outcomes are not yet synced back into TradingAgents' markdown memory log.
+- Async worker and web UI remain planned for M04 and M05.

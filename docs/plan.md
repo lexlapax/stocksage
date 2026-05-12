@@ -139,8 +139,13 @@ Portfolio Manager. StockSage's DB is a parallel, richer store for the UI and ana
 stocksage/
 ├── docs/
 │   ├── plan.md                ← this file
+│   ├── getting-started.md     ← local setup and CLI usage
+│   ├── development.md         ← development workflow and quality checks
 │   ├── 01-milestone.md        ← Phase 1 detailed tasks
-│   └── 02-milestone.md        ← Phase 2 detailed tasks
+│   ├── 02-milestone.md        ← Phase 2 detailed tasks
+│   ├── 03-milestone.md        ← Accuracy semantics + memory sync
+│   ├── 04-milestone.md        ← Async queue + worker
+│   └── 05-milestone.md        ← Web UI + charts
 ├── stocksage/
 │   ├── __init__.py
 │   └── cli.py                 ← Click commands and console script entry point
@@ -156,10 +161,10 @@ stocksage/
 │   └── main.py                ← compatibility wrapper for python -m cli.main
 ├── worker/
 │   ├── __init__.py
-│   └── runner.py              ← thread pool queue poller (Phase 1 end / Phase 2)
+│   └── runner.py              ← thread pool queue poller (Milestone 04)
 ├── api/
 │   ├── __init__.py
-│   ├── app.py                 ← FastAPI app factory (Phase 3+)
+│   ├── app.py                 ← FastAPI app factory (Milestone 05)
 │   ├── routes/
 │   │   ├── analyses.py
 │   │   ├── queue.py
@@ -167,7 +172,7 @@ stocksage/
 │   └── schemas/
 │       └── analysis.py
 ├── web/
-│   └── templates/             ← Jinja2 HTML (Phase 4)
+│   └── templates/             ← Jinja2 HTML (Milestone 05)
 ├── alembic/
 │   ├── env.py
 │   └── versions/
@@ -185,9 +190,9 @@ stocksage/
 |-----------|-------------|-----|
 | **01** | CLI + Persistent Storage | `docs/01-milestone.md` |
 | **02** | Memory & Trending Engine | `docs/02-milestone.md` |
-| **03** | Async Job Queue + Worker | (extend 01 runner) |
-| **04** | FastAPI backend + Jinja2/HTMX web UI | TBD |
-| **05** | Charts, Leaderboard, Production hardening | TBD |
+| **03** | Accuracy Semantics + TradingAgents Memory Sync | `docs/03-milestone.md` |
+| **04** | Async Job Queue + Worker | `docs/04-milestone.md` |
+| **05** | FastAPI + Jinja2/HTMX Web UI + Charts | `docs/05-milestone.md` |
 
 ---
 
@@ -212,27 +217,7 @@ TRADINGAGENTS_MEMORY_LOG_PATH=~/.stocksage/memory/trading_memory.md
 
 ---
 
-## Running Locally (target state after Milestone 1)
+## Operating and Development Docs
 
-```bash
-cd /Users/spuri/projects/lexlapax/stocksage
-uv venv
-uv sync
-uv run alembic upgrade head
-
-# First run — creates DB and tables
-uv run stocksage analyze AAPL
-
-# Analyze with a specific date
-uv run stocksage analyze AAPL --date 2026-05-01
-
-# Resolve outcomes for pending analyses
-uv run stocksage resolve
-
-# Print history for a ticker
-uv run stocksage summary AAPL
-
-# Rank tickers and compare model performance
-uv run stocksage leaderboard
-uv run stocksage models
-```
+- Local setup, configuration, and CLI usage: `docs/getting-started.md`
+- Development workflow, checks, and project layout: `docs/development.md`
