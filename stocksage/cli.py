@@ -12,13 +12,15 @@ from tabulate import tabulate
 from config import settings
 from core.analyzer import AnalysisResult, Analyzer
 from core.db import SessionLocal, init_db
+from core.memory_sync import sync_resolved_outcomes_to_memory
 from core.models import Analysis, AnalysisDetail
 from core.outcomes import resolve_pending_report
 from core.trends import (
     get_all_ticker_stats,
     get_model_stats,
     get_ticker_stats,
-    is_correct_direction,
+    is_correct_alpha_direction,
+    is_correct_raw_direction,
 )
 
 console = Console()
@@ -113,6 +115,7 @@ def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
                 )
             console.print(f"[yellow]{detail} Use --force to re-run.[/yellow]")
             sys.exit(0)
+        sync_resolved_outcomes_to_memory(db, settings)
         analysis_id = prep.analysis.id
 
     console.print(f"[cyan]Analyzing {ticker} for {parsed_date}...[/cyan]")
@@ -185,12 +188,18 @@ def resolve(holding_days: int, force: bool):
     init_db()
     with SessionLocal() as db:
         report = resolve_pending_report(db, settings, holding_days, force=force)
+        memory_report = sync_resolved_outcomes_to_memory(db, settings)
     console.print(f"[green]Resolved {report.resolved} outcome(s).[/green]")
     console.print(
         f"Attempted: {report.attempted} | Too recent: {report.too_recent} | "
         f"Already resolved: {report.already_resolved} | "
         f"Insufficient price data: {report.insufficient_price_data}"
     )
+    if memory_report.resolved_rows:
+        console.print(
+            f"Memory sync: {memory_report.resolved_rows} resolved outcome(s), "
+            f"{memory_report.appended} appended, {memory_report.updated} updated."
+        )
 
 
 @cli.command()
@@ -219,21 +228,39 @@ def summary(ticker: str, n: int):
             outcome = a.outcome
             raw = f"{outcome.raw_return:+.1%}" if outcome else "pending"
             alpha = f"{outcome.alpha_return:+.1%}" if outcome else "pending"
-            correct = (
+            raw_correct = (
                 "yes"
-                if outcome and is_correct_direction(a.rating or "", outcome.raw_return)
+                if outcome and is_correct_raw_direction(a.rating or "", outcome.raw_return)
+                else "no"
+                if outcome
+                else "pending"
+            )
+            alpha_correct = (
+                "yes"
+                if outcome and is_correct_alpha_direction(a.rating or "", outcome.alpha_return)
                 else "no"
                 if outcome
                 else "pending"
             )
             snippet = (outcome.reflection or "")[:60] if outcome else ""
-            table_data.append([str(a.trade_date), a.rating or "-", raw, alpha, correct, snippet])
+            table_data.append(
+                [
+                    str(a.trade_date),
+                    a.rating or "-",
+                    raw,
+                    alpha,
+                    raw_correct,
+                    alpha_correct,
+                    snippet,
+                ]
+            )
 
     if stats:
         console.print(f"\n[bold]StockSage Summary: {ticker}[/bold] ({len(rows)} recent analyses)\n")
         console.print(
             f"Resolved: {stats.resolved_count}/{stats.total_analyses}   "
-            f"Directional accuracy: {stats.directional_accuracy:.0%}"
+            f"Alpha-direction accuracy: {stats.alpha_directional_accuracy:.0%}   "
+            f"Raw-direction accuracy: {stats.raw_directional_accuracy:.0%}"
         )
         console.print(
             f"Avg raw return: {stats.avg_raw_return:+.1%}   "
@@ -248,25 +275,27 @@ def summary(ticker: str, n: int):
                         rating,
                         stats.rating_counts[rating],
                         f"{stats.avg_return_by_rating.get(rating, 0.0):+.1%}",
+                        f"{stats.avg_alpha_by_rating.get(rating, 0.0):+.1%}",
                         f"{stats.accuracy_by_rating.get(rating, 0.0):.0%}",
+                        f"{stats.raw_accuracy_by_rating.get(rating, 0.0):.0%}",
                     ]
                 )
             print(
                 tabulate(
                     rating_rows,
-                    headers=["Rating", "Calls", "Avg Raw", "Accuracy"],
+                    headers=["Rating", "Calls", "Avg Raw", "Avg Alpha", "Alpha Acc", "Raw Acc"],
                     tablefmt="rounded_outline",
                 )
             )
         if stats.accuracy_trend:
             trend = " ".join("hit" if ok else "miss" for _, ok in stats.accuracy_trend[-n:])
-            console.print(f"\n[bold]Accuracy trend:[/bold] {trend}")
+            console.print(f"\n[bold]Alpha accuracy trend:[/bold] {trend}")
 
     console.print("\n[bold]Recent analyses:[/bold]")
     print(
         tabulate(
             table_data,
-            headers=["Date", "Rating", "Raw Ret", "Alpha", "Correct", "Reflection"],
+            headers=["Date", "Rating", "Raw Ret", "Alpha", "Raw OK", "Alpha OK", "Reflection"],
             tablefmt="rounded_outline",
         )
     )
@@ -330,14 +359,14 @@ def leaderboard(sort_by: str, min_resolved: int):
     table_data = []
     for idx, item in enumerate(stats, start=1):
         best_rating = "-"
-        if item.avg_return_by_rating:
-            best_rating = max(item.avg_return_by_rating, key=item.avg_return_by_rating.get)
+        if item.avg_alpha_by_rating:
+            best_rating = max(item.avg_alpha_by_rating, key=item.avg_alpha_by_rating.get)
         table_data.append(
             [
                 idx,
                 item.ticker,
                 item.resolved_count,
-                f"{item.directional_accuracy:.0%}",
+                f"{item.alpha_directional_accuracy:.0%}",
                 f"{item.avg_alpha_return:+.1%}",
                 best_rating,
             ]
@@ -346,7 +375,7 @@ def leaderboard(sort_by: str, min_resolved: int):
     print(
         tabulate(
             table_data,
-            headers=["Rank", "Ticker", "Resolved", "Accuracy", "Avg Alpha", "Best Rating"],
+            headers=["Rank", "Ticker", "Resolved", "Alpha Acc", "Avg Alpha", "Best Rating"],
             tablefmt="rounded_outline",
         )
     )
@@ -365,7 +394,7 @@ def models_command():
             item.deep_model,
             item.total_analyses,
             item.resolved_count,
-            f"{item.directional_accuracy:.0%}",
+            f"{item.alpha_directional_accuracy:.0%}",
             f"{item.avg_alpha_return:+.1%}",
         ]
         for item in stats
@@ -373,7 +402,7 @@ def models_command():
     print(
         tabulate(
             table_data,
-            headers=["Provider", "Model", "Analyses", "Resolved", "Accuracy", "Avg Alpha"],
+            headers=["Provider", "Model", "Analyses", "Resolved", "Alpha Acc", "Avg Alpha"],
             tablefmt="rounded_outline",
         )
     )

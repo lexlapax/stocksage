@@ -10,7 +10,7 @@ No web UI yet. The CLI remains the control surface.
 
 ## Status
 
-**Planned.** Starts after Milestone 03 makes accuracy semantics and memory sync trustworthy.
+**Planned.** This is the next active milestone after Milestone 03 acceptance.
 
 ---
 

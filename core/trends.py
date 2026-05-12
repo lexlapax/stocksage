@@ -16,12 +16,17 @@ class TickerStats:
     total_analyses: int
     resolved_count: int
     directional_accuracy: float
+    alpha_directional_accuracy: float
+    raw_directional_accuracy: float
     avg_raw_return: float
     avg_alpha_return: float
     avg_return_by_rating: dict[str, float]
+    avg_alpha_by_rating: dict[str, float]
     accuracy_trend: list[tuple[date, bool]]
+    raw_accuracy_trend: list[tuple[date, bool]]
     rating_counts: dict[str, int] = field(default_factory=dict)
     accuracy_by_rating: dict[str, float] = field(default_factory=dict)
+    raw_accuracy_by_rating: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -32,9 +37,11 @@ class ModelStats:
     resolved_count: int
     avg_alpha_return: float
     directional_accuracy: float
+    alpha_directional_accuracy: float
+    raw_directional_accuracy: float
 
 
-def is_correct_direction(rating: str, raw_return: float) -> bool:
+def is_correct_raw_direction(rating: str, raw_return: float) -> bool:
     rating = (rating or "").strip().lower()
     if rating in {"buy", "overweight"}:
         return raw_return > 0
@@ -43,6 +50,21 @@ def is_correct_direction(rating: str, raw_return: float) -> bool:
     if rating == "hold":
         return abs(raw_return) < 0.02
     return False
+
+
+def is_correct_alpha_direction(rating: str, alpha_return: float) -> bool:
+    rating = (rating or "").strip().lower()
+    if rating in {"buy", "overweight"}:
+        return alpha_return > 0
+    if rating in {"sell", "underweight"}:
+        return alpha_return < 0
+    if rating == "hold":
+        return abs(alpha_return) < 0.02
+    return False
+
+
+def is_correct_direction(rating: str, alpha_return: float) -> bool:
+    return is_correct_alpha_direction(rating, alpha_return)
 
 
 def get_ticker_stats(db: Session, ticker: str) -> TickerStats | None:
@@ -54,27 +76,45 @@ def get_ticker_stats(db: Session, ticker: str) -> TickerStats | None:
         return None
 
     rows = _resolved_analyses(db, ticker=ticker)
-    flags = _correct_flags(rows)
-    by_rating: dict[str, list[float]] = defaultdict(list)
-    flags_by_rating: dict[str, list[bool]] = defaultdict(list)
+    alpha_flags = _alpha_correct_flags(rows)
+    raw_flags = _raw_correct_flags(rows)
+    raw_by_rating: dict[str, list[float]] = defaultdict(list)
+    alpha_by_rating: dict[str, list[float]] = defaultdict(list)
+    alpha_flags_by_rating: dict[str, list[bool]] = defaultdict(list)
+    raw_flags_by_rating: dict[str, list[bool]] = defaultdict(list)
 
     for row in rows:
         rating = row.rating or "Unknown"
-        by_rating[rating].append(row.outcome.raw_return)
-        flags_by_rating[rating].append(is_correct_direction(rating, row.outcome.raw_return))
+        raw_by_rating[rating].append(row.outcome.raw_return)
+        alpha_by_rating[rating].append(row.outcome.alpha_return)
+        alpha_flags_by_rating[rating].append(
+            is_correct_alpha_direction(rating, row.outcome.alpha_return)
+        )
+        raw_flags_by_rating[rating].append(is_correct_raw_direction(rating, row.outcome.raw_return))
 
     return TickerStats(
         ticker=ticker,
         total_analyses=total,
         resolved_count=len(rows),
-        directional_accuracy=_average_bools(flags),
+        directional_accuracy=_average_bools(alpha_flags),
+        alpha_directional_accuracy=_average_bools(alpha_flags),
+        raw_directional_accuracy=_average_bools(raw_flags),
         avg_raw_return=_average([row.outcome.raw_return for row in rows]),
         avg_alpha_return=_average([row.outcome.alpha_return for row in rows]),
-        avg_return_by_rating={rating: mean(values) for rating, values in by_rating.items()},
-        accuracy_trend=[(row.trade_date, flag) for row, flag in zip(rows, flags, strict=False)],
-        rating_counts={rating: len(values) for rating, values in by_rating.items()},
+        avg_return_by_rating={rating: mean(values) for rating, values in raw_by_rating.items()},
+        avg_alpha_by_rating={rating: mean(values) for rating, values in alpha_by_rating.items()},
+        accuracy_trend=[
+            (row.trade_date, flag) for row, flag in zip(rows, alpha_flags, strict=False)
+        ],
+        raw_accuracy_trend=[
+            (row.trade_date, flag) for row, flag in zip(rows, raw_flags, strict=False)
+        ],
+        rating_counts={rating: len(values) for rating, values in raw_by_rating.items()},
         accuracy_by_rating={
-            rating: _average_bools(values) for rating, values in flags_by_rating.items()
+            rating: _average_bools(values) for rating, values in alpha_flags_by_rating.items()
+        },
+        raw_accuracy_by_rating={
+            rating: _average_bools(values) for rating, values in raw_flags_by_rating.items()
         },
     )
 
@@ -114,7 +154,9 @@ def get_model_stats(db: Session) -> list[ModelStats]:
                 total_analyses=total_counts[key],
                 resolved_count=len(rows),
                 avg_alpha_return=_average([row.outcome.alpha_return for row in rows]),
-                directional_accuracy=_average_bools(_correct_flags(rows)),
+                directional_accuracy=_average_bools(_alpha_correct_flags(rows)),
+                alpha_directional_accuracy=_average_bools(_alpha_correct_flags(rows)),
+                raw_directional_accuracy=_average_bools(_raw_correct_flags(rows)),
             )
         )
     return stats
@@ -126,7 +168,7 @@ def get_accuracy_trend(
     window: int = 10,
 ) -> list[tuple[date, float]]:
     rows = _resolved_analyses(db, ticker=ticker.upper())
-    flags = _correct_flags(rows)
+    flags = _alpha_correct_flags(rows)
     if not rows:
         return []
 
@@ -154,7 +196,9 @@ def get_cross_ticker_lessons(db: Session, n: int = 5) -> str:
     for row in rows:
         outcome = row.outcome
         correct = (
-            "correct" if is_correct_direction(row.rating or "", outcome.raw_return) else "missed"
+            "alpha-correct"
+            if is_correct_alpha_direction(row.rating or "", outcome.alpha_return)
+            else "alpha-missed"
         )
         reflection = _one_line(outcome.reflection or "")
         lines.append(
@@ -177,9 +221,17 @@ def _resolved_analyses(db: Session, ticker: str | None = None) -> list[Analysis]
     return query.all()
 
 
-def _correct_flags(rows: list[Analysis]) -> list[bool]:
+def _alpha_correct_flags(rows: list[Analysis]) -> list[bool]:
     return [
-        is_correct_direction(row.rating or "", row.outcome.raw_return)
+        is_correct_alpha_direction(row.rating or "", row.outcome.alpha_return)
+        for row in rows
+        if row.outcome is not None
+    ]
+
+
+def _raw_correct_flags(rows: list[Analysis]) -> list[bool]:
+    return [
+        is_correct_raw_direction(row.rating or "", row.outcome.raw_return)
         for row in rows
         if row.outcome is not None
     ]

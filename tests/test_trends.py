@@ -11,7 +11,9 @@ from core.trends import (
     get_cross_ticker_lessons,
     get_model_stats,
     get_ticker_stats,
+    is_correct_alpha_direction,
     is_correct_direction,
+    is_correct_raw_direction,
 )
 
 
@@ -53,13 +55,17 @@ def _add_analysis(
     return row
 
 
-def test_is_correct_direction():
-    assert is_correct_direction("Buy", 0.01) is True
-    assert is_correct_direction("Overweight", 0.01) is True
-    assert is_correct_direction("Sell", -0.01) is True
-    assert is_correct_direction("Underweight", -0.01) is True
-    assert is_correct_direction("Hold", 0.019) is True
-    assert is_correct_direction("Hold", 0.021) is False
+def test_raw_and_alpha_direction_correctness():
+    assert is_correct_raw_direction("Buy", 0.01) is True
+    assert is_correct_raw_direction("Overweight", 0.01) is True
+    assert is_correct_raw_direction("Sell", -0.01) is True
+    assert is_correct_raw_direction("Underweight", -0.01) is True
+    assert is_correct_raw_direction("Hold", 0.019) is True
+    assert is_correct_raw_direction("Hold", 0.021) is False
+
+    assert is_correct_alpha_direction("Underweight", -0.0025) is True
+    assert is_correct_alpha_direction("Overweight", -0.0025) is False
+    assert is_correct_direction("Underweight", -0.0025) is True
 
 
 def test_get_ticker_stats(db):
@@ -72,11 +78,30 @@ def test_get_ticker_stats(db):
     assert stats.total_analyses == 4
     assert stats.resolved_count == 3
     assert stats.directional_accuracy == pytest.approx(2 / 3)
+    assert stats.alpha_directional_accuracy == pytest.approx(2 / 3)
+    assert stats.raw_directional_accuracy == pytest.approx(2 / 3)
     assert stats.avg_raw_return == pytest.approx(0.03)
     assert stats.avg_alpha_return == pytest.approx(0.01)
     assert stats.avg_return_by_rating["Buy"] == pytest.approx(0.05)
+    assert stats.avg_alpha_by_rating["Buy"] == pytest.approx(0.02)
     assert stats.rating_counts["Hold"] == 1
     assert stats.accuracy_by_rating["Sell"] == pytest.approx(0.0)
+    assert stats.raw_accuracy_by_rating["Sell"] == pytest.approx(0.0)
+
+
+def test_alpha_accuracy_is_default_for_relative_calls(db):
+    _add_analysis(db, "PLTR", date(2026, 1, 2), "Underweight", 0.0068, -0.0025)
+    _add_analysis(db, "META", date(2026, 1, 3), "Overweight", 0.01, -0.03)
+
+    pltr = get_ticker_stats(db, "PLTR")
+    meta = get_ticker_stats(db, "META")
+
+    assert pltr.directional_accuracy == pytest.approx(1.0)
+    assert pltr.alpha_directional_accuracy == pytest.approx(1.0)
+    assert pltr.raw_directional_accuracy == pytest.approx(0.0)
+    assert meta.directional_accuracy == pytest.approx(0.0)
+    assert meta.alpha_directional_accuracy == pytest.approx(0.0)
+    assert meta.raw_directional_accuracy == pytest.approx(1.0)
 
 
 def test_get_accuracy_trend(db):
@@ -105,6 +130,8 @@ def test_get_model_stats(db):
     assert openai.total_analyses == 4
     assert openai.resolved_count == 3
     assert openai.directional_accuracy == pytest.approx(2 / 3)
+    assert openai.alpha_directional_accuracy == pytest.approx(2 / 3)
+    assert openai.raw_directional_accuracy == pytest.approx(2 / 3)
 
     anthropic = by_model[("anthropic", "claude-opus")]
     assert anthropic.total_analyses == 1

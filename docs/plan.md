@@ -155,7 +155,8 @@ stocksage/
 │   ├── models.py              ← SQLAlchemy ORM models
 │   ├── db.py                  ← engine / session factory / Alembic target
 │   ├── outcomes.py            ← fetch returns, resolve pending analyses
-│   └── trends.py              ← accuracy metrics, trending (Phase 2)
+│   ├── trends.py              ← alpha-aware accuracy metrics, trending
+│   └── memory_sync.py         ← resolved outcome sync to TradingAgents memory
 ├── cli/
 │   ├── __init__.py
 │   └── main.py                ← compatibility wrapper for python -m cli.main
@@ -186,13 +187,13 @@ stocksage/
 
 ## Milestones
 
-| Milestone | Description | Doc |
-|-----------|-------------|-----|
-| **01** | CLI + Persistent Storage | `docs/01-milestone.md` |
-| **02** | Memory & Trending Engine | `docs/02-milestone.md` |
-| **03** | Accuracy Semantics + TradingAgents Memory Sync | `docs/03-milestone.md` |
-| **04** | Async Job Queue + Worker | `docs/04-milestone.md` |
-| **05** | FastAPI + Jinja2/HTMX Web UI + Charts | `docs/05-milestone.md` |
+| Milestone | Description | Status | Doc |
+|-----------|-------------|--------|-----|
+| **01** | CLI + Persistent Storage | accepted | `docs/01-milestone.md` |
+| **02** | Memory & Trending Engine | accepted | `docs/02-milestone.md` |
+| **03** | Accuracy Semantics + TradingAgents Memory Sync | accepted | `docs/03-milestone.md` |
+| **04** | Async Job Queue + Worker | active next | `docs/04-milestone.md` |
+| **05** | FastAPI + Jinja2/HTMX Web UI + Charts | planned | `docs/05-milestone.md` |
 
 ---
 

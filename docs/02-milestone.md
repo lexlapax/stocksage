@@ -20,13 +20,13 @@ No web server yet. Everything is exposed through new CLI commands and a structur
 implemented and validated against a real 20-stock resolved batch.
 
 Validation result: 20 resolved analyses, `openai/gpt-5.4`, raw-direction accuracy 50%, average
-alpha +2.9%. The batch exposed two important follow-ups for Milestone 03:
+alpha +2.9%. The batch exposed two important follow-ups that Milestone 03 has since resolved:
 
 - Raw-direction accuracy is too blunt for relative allocation ratings such as Overweight and
   Underweight. PLTR was Underweight with positive raw return but slightly negative alpha, which
   should count differently under a portfolio-relative metric.
-- StockSage DB outcomes are not yet synced back into TradingAgents' markdown memory log, so future
-  analyses do not automatically consume the resolved lessons.
+- StockSage DB outcomes needed to sync back into TradingAgents' markdown memory log so future
+  analyses could automatically consume the resolved lessons.
 
 ---
 
@@ -263,9 +263,8 @@ test = ["pytest>=8.0", "pytest-cov>=5.0"]
 - [x] `get_cross_ticker_lessons()` returns formatted string usable as LLM prompt context
 - [x] Ruff lint and format checks pass before release prep
 
-**Validation note:** completed against a 20-stock batch. The accepted baseline is useful for
-visibility, but Milestone 03 must make accuracy semantics alpha-aware before using leaderboard
-rankings as a model-quality signal.
+**Validation note:** completed against a 20-stock batch. The accepted baseline was useful for
+visibility; Milestone 03 now makes leaderboard/model accuracy alpha-aware by default.
 
 ---
 
@@ -292,8 +291,8 @@ tests/
 
 ## Notes for Future Milestones
 
-- Next: `docs/03-milestone.md` corrects accuracy semantics and syncs DB outcomes back into
-  TradingAgents memory.
-- After that: `docs/04-milestone.md` introduces the async queue/worker so batch runs no longer
-  require shell loops.
+- Completed follow-up: `docs/03-milestone.md` corrected accuracy semantics and syncs resolved DB
+  outcomes back into TradingAgents memory.
+- Next: `docs/04-milestone.md` introduces the async queue/worker so batch runs no longer require
+  shell loops.
 - Web UI and charts are tracked together in `docs/05-milestone.md`.

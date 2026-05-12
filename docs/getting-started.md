@@ -73,7 +73,7 @@ uv run stocksage summary AAPL
 # List recent analyses
 uv run stocksage list
 
-# Rank tickers by accuracy, alpha, or resolved count
+# Rank tickers by alpha-direction accuracy, average alpha, or resolved count
 uv run stocksage leaderboard --by accuracy --min-resolved 3
 
 # Compare model/provider performance

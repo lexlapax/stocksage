@@ -13,7 +13,10 @@ All notable changes to StockSage are tracked here.
 - TradingAgents wrapper that isolates third-party imports in `core/analyzer.py`.
 - Outcome resolver with batched yfinance price fetching and optional `resolve --force`.
 - Trend analytics for ticker accuracy, rating calibration, model performance, rolling accuracy, and cross-ticker lessons.
+- Alpha-aware accuracy semantics for five-tier ratings, with raw-direction accuracy kept as a diagnostic.
+- DB-to-TradingAgents memory sync for resolved outcomes, including pending-entry updates and idempotent appends.
 - Unit and CLI integration tests covering analyzer parsing, ORM relationships, outcome resolution, trend analytics, and forced reruns.
+- Memory sync tests covering pending-entry resolution, fallback decision rendering, and idempotency.
 - Ruff linting and formatting checks configured in `pyproject.toml`.
 - Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, and M05 web UI/charts.
 - Focused docs for local setup/CLI usage and development workflow.
@@ -21,7 +24,9 @@ All notable changes to StockSage are tracked here.
 ### Changed
 
 - `analyze --force` now reuses and resets the existing `ticker + trade_date` row instead of violating the unique constraint.
-- `summary` now shows resolved counts, directional accuracy, average returns, rating breakdowns, trend markers, and recent outcome correctness.
+- `summary` now shows resolved counts, alpha-direction accuracy, raw-direction accuracy, average returns, rating breakdowns, trend markers, and recent outcome correctness.
+- `leaderboard --by accuracy` and `models` now report alpha-direction accuracy by default.
+- `resolve` now syncs resolved outcomes into TradingAgents memory, and `analyze` syncs before live runs so prior lessons can feed `past_context`.
 - Project setup documentation now uses `uv` consistently.
 - The `stocksage` console script now points at `stocksage.cli:cli` to avoid collisions with third-party `cli` packages.
 - Milestone docs now mark M01 and M02 accepted after live validation and move raw-vs-alpha accuracy plus memory sync into M03.
@@ -29,6 +34,4 @@ All notable changes to StockSage are tracked here.
 
 ### Known Gaps
 
-- M03 must make accuracy semantics alpha-aware before leaderboard rankings are treated as model-quality signal.
-- Resolved DB outcomes are not yet synced back into TradingAgents' markdown memory log.
 - Async worker and web UI remain planned for M04 and M05.

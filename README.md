@@ -10,9 +10,9 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
   and a live `stocksage analyze AAPL` smoke run are complete.
 - **M02 accepted:** trend analytics, leaderboard, and model performance commands are complete
   and validated against a 20-stock resolved batch.
-- **M03 next:** raw-direction accuracy is too blunt for Overweight/Underweight calls, so the
-  next milestone makes metrics alpha-aware and syncs resolved DB lessons back into
-  TradingAgents memory.
+- **M03 accepted:** accuracy is now alpha-aware by default, raw-direction correctness remains
+  visible as a diagnostic, and resolved DB outcomes sync into TradingAgents memory.
+- **M04 next:** make batch analysis reliable through queue commands and a worker.
 
 ## Project Docs
 
@@ -29,9 +29,9 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
 
 ## Next Steps
 
-Implement Milestone 03 before starting queue or web work:
+Implement Milestone 04 before starting web work:
 
-1. Add alpha-direction accuracy alongside raw-direction accuracy.
-2. Make leaderboard and model metrics default to alpha-aware scoring.
-3. Sync resolved outcomes from StockSage's database into TradingAgents' markdown memory log.
-4. Cover the new semantics with tests, including PLTR-style alpha-correct cases.
+1. Add queue commands for single and batch ticker enqueues.
+2. Make `AnalysisQueue` track runnable job state and retry behavior.
+3. Implement the worker runner with conservative concurrency.
+4. Cover success, failure, retry, duplicate ticker/date, and interruption recovery with tests.
