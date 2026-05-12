@@ -129,6 +129,11 @@ Portfolio Manager. StockSage's DB is a parallel, richer store for the UI and ana
 | trade_date | DATE | |
 | priority | INTEGER | 0 = normal, 1 = high |
 | queued_at | DATETIME | |
+| status | VARCHAR(16) | queued / running / completed / failed |
+| started_at | DATETIME | nullable |
+| completed_at | DATETIME | nullable |
+| attempts | INTEGER | retry/run count |
+| last_error | TEXT | nullable; populated on failed jobs |
 | analysis_id | INTEGER FK → analyses.id | nullable; set on start |
 
 ---
@@ -152,11 +157,13 @@ stocksage/
 ├── core/
 │   ├── __init__.py
 │   ├── analyzer.py            ← TradingAgentsGraph wrapper
+│   ├── analysis_runs.py       ← shared analysis persistence helpers
 │   ├── models.py              ← SQLAlchemy ORM models
 │   ├── db.py                  ← engine / session factory / Alembic target
 │   ├── outcomes.py            ← fetch returns, resolve pending analyses
 │   ├── trends.py              ← alpha-aware accuracy metrics, trending
-│   └── memory_sync.py         ← resolved outcome sync to TradingAgents memory
+│   ├── memory_sync.py         ← resolved outcome sync to TradingAgents memory
+│   └── queueing.py            ← queue operations and job claiming
 ├── cli/
 │   ├── __init__.py
 │   └── main.py                ← compatibility wrapper for python -m cli.main
@@ -192,8 +199,8 @@ stocksage/
 | **01** | CLI + Persistent Storage | accepted | `docs/01-milestone.md` |
 | **02** | Memory & Trending Engine | accepted | `docs/02-milestone.md` |
 | **03** | Accuracy Semantics + TradingAgents Memory Sync | accepted | `docs/03-milestone.md` |
-| **04** | Async Job Queue + Worker | active next | `docs/04-milestone.md` |
-| **05** | FastAPI + Jinja2/HTMX Web UI + Charts | planned | `docs/05-milestone.md` |
+| **04** | Async Job Queue + Worker | accepted | `docs/04-milestone.md` |
+| **05** | FastAPI + Jinja2/HTMX Web UI + Charts | active next | `docs/05-milestone.md` |
 
 ---
 

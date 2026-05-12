@@ -12,7 +12,8 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
   and validated against a 20-stock resolved batch.
 - **M03 accepted:** accuracy is now alpha-aware by default, raw-direction correctness remains
   visible as a diagnostic, and resolved DB outcomes sync into TradingAgents memory.
-- **M04 next:** make batch analysis reliable through queue commands and a worker.
+- **M04 accepted:** queue commands and the worker make batch analysis resumable and retryable.
+- **M05 next:** add the FastAPI + Jinja2/HTMX web UI and charts.
 
 ## Project Docs
 
@@ -29,9 +30,9 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
 
 ## Next Steps
 
-Implement Milestone 04 before starting web work:
+Implement Milestone 05:
 
-1. Add queue commands for single and batch ticker enqueues.
-2. Make `AnalysisQueue` track runnable job state and retry behavior.
-3. Implement the worker runner with conservative concurrency.
-4. Cover success, failure, retry, duplicate ticker/date, and interruption recovery with tests.
+1. Add a local FastAPI app and Jinja2 templates.
+2. Show DB-backed analysis history, trends, leaderboard, and model performance.
+3. Add queue controls for enqueueing, retrying, and inspecting background work.
+4. Display M03 alpha-aware metrics in browser charts.

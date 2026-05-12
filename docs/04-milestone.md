@@ -10,7 +10,11 @@ No web UI yet. The CLI remains the control surface.
 
 ## Status
 
-**Planned.** This is the next active milestone after Milestone 03 acceptance.
+**Accepted.** Queue commands, durable queue state, worker processing, retries, stale-run recovery,
+and tests are complete.
+
+Validation completed on 2026-05-12 with `uv run alembic upgrade head`,
+`uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest`.
 
 ---
 
@@ -26,59 +30,59 @@ No web UI yet. The CLI remains the control surface.
 
 ### T01 · Queue commands
 
-- [ ] Add `stocksage queue add TICKER [--date YYYY-MM-DD] [--priority N]`.
-- [ ] Add `stocksage queue add-batch TICKER... [--date YYYY-MM-DD]`.
-- [ ] Add `stocksage queue list [--status queued|running|completed|failed]`.
-- [ ] Add `stocksage queue retry [QUEUE_ID|--failed]`.
-- [ ] Add `stocksage queue clear-completed`.
+- [x] Add `stocksage queue add TICKER [--date YYYY-MM-DD] [--priority N]`.
+- [x] Add `stocksage queue add-batch TICKER... [--date YYYY-MM-DD]`.
+- [x] Add `stocksage queue list [--status queued|running|completed|failed]`.
+- [x] Add `stocksage queue retry [QUEUE_ID|--failed]`.
+- [x] Add `stocksage queue clear-completed`.
 
 ### T02 · Queue state model
 
-- [ ] Decide whether `AnalysisQueue` needs additional status/error fields.
-- [ ] If schema changes are needed, create an Alembic revision.
-- [ ] Preserve the `ticker`, `trade_date`, `priority`, `queued_at`, and `analysis_id` contract.
-- [ ] Ensure duplicate ticker/date queue requests do not create duplicate completed analyses.
+- [x] Decide whether `AnalysisQueue` needs additional status/error fields.
+- [x] If schema changes are needed, create an Alembic revision.
+- [x] Preserve the `ticker`, `trade_date`, `priority`, `queued_at`, and `analysis_id` contract.
+- [x] Ensure duplicate ticker/date queue requests do not create duplicate completed analyses.
 
 ### T03 · Worker runner
 
-- [ ] Implement `worker/runner.py`.
-- [ ] Poll queued jobs by priority and age.
-- [ ] Mark jobs running before invoking `Analyzer`.
-- [ ] Reuse the same analysis persistence behavior as `stocksage analyze`.
-- [ ] Mark failed jobs with enough error context to retry safely.
-- [ ] Support graceful shutdown between jobs.
+- [x] Implement `worker/runner.py`.
+- [x] Poll queued jobs by priority and age.
+- [x] Mark jobs running before invoking `Analyzer`.
+- [x] Reuse the same analysis persistence behavior as `stocksage analyze`.
+- [x] Mark failed jobs with enough error context to retry safely.
+- [x] Support graceful shutdown between jobs.
 
 ### T04 · Concurrency and rate safety
 
-- [ ] Default to one concurrent analysis.
-- [ ] Add a configurable max worker count, but keep the default conservative for LLM/API cost.
-- [ ] Avoid running two jobs for the same ticker/date at the same time.
-- [ ] Document token/API cost expectations for batch runs.
+- [x] Default to one concurrent analysis.
+- [x] Add a configurable max worker count, but keep the default conservative for LLM/API cost.
+- [x] Avoid running two jobs for the same ticker/date at the same time.
+- [x] Document token/API cost expectations for batch runs.
 
 ### T05 · Resumability and failed jobs
 
-- [ ] Treat existing failed analysis rows as retryable with explicit user intent.
-- [ ] Ensure queued jobs can recover after process interruption.
-- [ ] Preserve TradingAgents checkpoint behavior when enabled.
-- [ ] Make retries reset stale running state safely.
+- [x] Treat existing failed analysis rows as retryable with explicit user intent.
+- [x] Ensure queued jobs can recover after process interruption.
+- [x] Preserve TradingAgents checkpoint behavior when enabled.
+- [x] Make retries reset stale running state safely.
 
 ### T06 · Tests
 
-- [ ] Add queue command tests with in-memory SQLite.
-- [ ] Add worker tests using a fake analyzer.
-- [ ] Cover success, failure, retry, duplicate ticker/date, and interruption recovery.
-- [ ] Keep tests network-free and LLM-free.
+- [x] Add queue command tests with in-memory SQLite.
+- [x] Add worker tests using a fake analyzer.
+- [x] Cover success, failure, retry, duplicate ticker/date, and interruption recovery.
+- [x] Keep tests network-free and LLM-free.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] A user can enqueue 20 tickers for the same date with one command.
-- [ ] The worker processes queued jobs into completed or failed analyses.
-- [ ] Failed jobs can be retried without violating the `ticker + trade_date` unique constraint.
-- [ ] `stocksage queue list` shows queued, running, completed, and failed work clearly.
-- [ ] `AnalysisQueue` is no longer a stub-only table.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest` pass.
+- [x] A user can enqueue 20 tickers for the same date with one command.
+- [x] The worker processes queued jobs into completed or failed analyses.
+- [x] Failed jobs can be retried without violating the `ticker + trade_date` unique constraint.
+- [x] `stocksage queue list` shows queued, running, completed, and failed work clearly.
+- [x] `AnalysisQueue` is no longer a stub-only table.
+- [x] `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest` pass.
 
 ---
 

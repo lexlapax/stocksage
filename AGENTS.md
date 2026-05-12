@@ -15,7 +15,7 @@ outcome tracking, and a web UI. The core loop is:
    an LLM reflection, and writes an `Outcome` row
 5. `core/trends.py` computes alpha-aware accuracy metrics and surfaces patterns over time
 6. `core/memory_sync.py` syncs resolved DB lessons into TradingAgents memory
-7. Milestone 04 will make batch analysis reliable through the async queue/worker
+7. `worker/runner.py` processes queued analyses with conservative concurrency and retry support
 8. Milestone 05 will add the FastAPI + Jinja2/HTMX web UI and charts
 
 Human-facing orientation starts in `README.md`. Local setup and CLI usage live in
@@ -26,7 +26,7 @@ and DB schema: `docs/plan.md`
 
 ## Current Status
 
-**Active milestone: 04 — Async Queue + Worker**
+**Active milestone: 05 — FastAPI + Jinja2/HTMX Web UI + Charts**
 Detailed task lists and acceptance criteria:
 `docs/01-milestone.md`, `docs/02-milestone.md`, `docs/03-milestone.md`,
 `docs/04-milestone.md`, `docs/05-milestone.md`
@@ -35,22 +35,24 @@ Detailed task lists and acceptance criteria:
 - `config.py` — pydantic-settings; reads `.env`; builds tradingagents config dict
 - `core/models.py` — SQLAlchemy ORM: Analysis, AnalysisDetail, Outcome, AnalysisQueue
 - `core/db.py` — engine, SessionLocal, init_db()
+- `core/analysis_runs.py` — shared analysis row preparation, success persistence, and failure marking
 - `core/analyzer.py` — wraps TradingAgentsGraph; parses final_state into AnalysisResult
 - `core/outcomes.py` — batch yfinance return resolver + LLM reflection via tradingagents Reflector
 - `core/trends.py` — alpha-aware ticker/model accuracy stats, rating calibration, trend helpers
 - `core/memory_sync.py` — DB-to-TradingAgents memory log sync for resolved outcomes
-- `stocksage/cli.py` — Click commands: analyze, resolve, summary, list, leaderboard, models
+- `core/queueing.py` — enqueue/list/retry/clear/claim queue operations
+- `worker/runner.py` — queue worker with stale-running recovery and configurable worker count
+- `stocksage/cli.py` — Click commands: analyze, resolve, summary, list, leaderboard, models, queue
 - `cli/main.py` — compatibility wrapper for `python -m cli.main`
 - `alembic/env.py` — migrations wired to Settings.database_url + core.models.Base
-- `tests/` — unit and CLI integration coverage for Milestone 01/02/03 behavior
-- `worker/runner.py` — stub (Milestone 04)
+- `tests/` — unit and CLI integration coverage for Milestone 01/02/03/04 behavior
 - `docs/getting-started.md` — local setup, configuration, and CLI usage
 - `docs/development.md` — development workflow, checks, and docs maintenance
 - `docs/03-milestone.md` — accepted alpha-aware accuracy and memory sync work
-- `docs/04-milestone.md` — planned async queue + worker work; current focus
-- `docs/05-milestone.md` — planned web UI + charts work
+- `docs/04-milestone.md` — accepted async queue + worker work
+- `docs/05-milestone.md` — planned web UI + charts work; current focus
 
-**Next action:** Implement Milestone 04:
+**Next action:** Implement Milestone 05:
 ```bash
 uv run ruff check .
 uv run ruff format --check .
@@ -59,7 +61,8 @@ uv run pytest
 
 Milestone 01 is accepted after a live AAPL TradingAgents smoke run. Milestone 02 is accepted after
 a 20-stock resolved validation batch. Milestone 03 is accepted after alpha-aware accuracy and
-TradingAgents memory sync landed with tests.
+TradingAgents memory sync landed with tests. Milestone 04 is accepted after queue commands, worker
+processing, retries, stale-run recovery, and the queue migration landed with tests.
 
 ---
 
@@ -140,5 +143,4 @@ or incomplete.
 
 ## Milestones
 
-Current work is tracked in `docs/04-milestone.md`. Check off tasks as they are completed. Do not
-start Milestone 05 until Milestone 04 is accepted.
+Current work is tracked in `docs/05-milestone.md`. Check off tasks as they are completed.

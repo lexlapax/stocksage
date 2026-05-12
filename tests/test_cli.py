@@ -6,9 +6,10 @@ from click.testing import CliRunner
 
 import stocksage.cli as cli_main
 from core.memory_sync import MemorySyncReport
-from core.models import Analysis, AnalysisDetail, Outcome
+from core.models import Analysis, AnalysisDetail, AnalysisQueue, Outcome
 from core.outcomes import ResolutionReport
 from stocksage.cli import _prepare_analysis_row
+from worker.runner import WorkerReport
 
 
 def test_prepare_analysis_row_skips_existing_without_force(db, completed_analysis):
@@ -112,6 +113,69 @@ def test_resolve_command_syncs_memory_after_resolution(db, monkeypatch):
     assert result.exit_code == 0
     assert calls == [db]
     assert "Memory sync: 1 resolved outcome(s), 1 appended, 0 updated." in result.output
+
+
+def test_queue_commands_add_list_retry_and_clear(db, monkeypatch):
+    class SessionContext:
+        def __enter__(self):
+            return db
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(cli_main, "SessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(cli_main, "init_db", lambda: None)
+
+    runner = CliRunner()
+    add = runner.invoke(cli_main.cli, ["queue", "add", "AAPL", "--date", "2026-01-02"])
+    assert add.exit_code == 0
+    assert "Queued AAPL" in add.output
+
+    listed = runner.invoke(cli_main.cli, ["queue", "list"])
+    assert listed.exit_code == 0
+    assert "AAPL" in listed.output
+    assert "queued" in listed.output
+
+    row = db.query(AnalysisQueue).filter_by(ticker="AAPL").one()
+    row.status = "failed"
+    row.last_error = "provider failed"
+    db.commit()
+
+    retry = runner.invoke(cli_main.cli, ["queue", "retry", str(row.id)])
+    assert retry.exit_code == 0
+    assert "Re-queued job" in retry.output
+    db.refresh(row)
+    assert row.status == "queued"
+
+    row.status = "completed"
+    db.commit()
+    clear = runner.invoke(cli_main.cli, ["queue", "clear-completed"])
+    assert clear.exit_code == 0
+    assert "Cleared 1 completed" in clear.output
+
+
+def test_queue_run_command_invokes_worker(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(cli_main, "init_db", lambda: None)
+    monkeypatch.setattr(
+        cli_main,
+        "run_queued_jobs",
+        lambda **kwargs: (
+            calls.append(kwargs)
+            or WorkerReport(attempted=2, completed=1, failed=1, skipped=0, reset_stale=0)
+        ),
+    )
+
+    result = CliRunner().invoke(
+        cli_main.cli,
+        ["queue", "run", "--limit", "2", "--max-workers", "1"],
+    )
+
+    assert result.exit_code == 0
+    assert calls[0]["max_jobs"] == 2
+    assert calls[0]["max_workers"] == 1
+    assert "1 completed, 1 failed" in result.output
 
 
 def test_analyze_command_marks_failed_on_analyzer_error(db, monkeypatch):

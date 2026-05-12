@@ -293,6 +293,6 @@ tests/
 
 - Completed follow-up: `docs/03-milestone.md` corrected accuracy semantics and syncs resolved DB
   outcomes back into TradingAgents memory.
-- Next: `docs/04-milestone.md` introduces the async queue/worker so batch runs no longer require
-  shell loops.
-- Web UI and charts are tracked together in `docs/05-milestone.md`.
+- Completed follow-up: `docs/04-milestone.md` introduced the async queue/worker so batch runs no
+  longer require shell loops.
+- Next: web UI and charts are tracked together in `docs/05-milestone.md`.

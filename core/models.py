@@ -111,6 +111,13 @@ class AnalysisQueue(Base):
     trade_date: Mapped[date] = mapped_column(Date, nullable=False)
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     queued_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     analysis_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("analyses.id"), nullable=True
     )
+
+    analysis: Mapped[Optional["Analysis"]] = relationship()

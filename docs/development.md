@@ -46,7 +46,7 @@ Keep the database layer PostgreSQL-compatible even though local development uses
 stocksage/  Import-safe package entry point for the CLI
 core/       ORM models, DB sessions, analyzer wrapper, outcomes, trends
 cli/        Compatibility wrapper for python -m cli.main
-worker/     Async queue runner stub for Milestone 04
+worker/     Async queue worker accepted in Milestone 04
 api/        FastAPI package placeholder for Milestone 05
 web/        Template placeholder for Milestone 05
 alembic/    Database migrations

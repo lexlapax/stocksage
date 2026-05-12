@@ -9,7 +9,7 @@ Milestone 02 proved the mechanics work, but the 20-stock validation showed that 
 accuracy is not enough for a five-tier rating system. Overweight and Underweight are relative
 allocation calls, so alpha versus benchmark must become the default correctness signal.
 
-No async worker yet. No web UI yet.
+Async worker and web UI work were intentionally out of scope for this milestone.
 
 ## Status
 

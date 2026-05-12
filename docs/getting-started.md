@@ -78,6 +78,22 @@ uv run stocksage leaderboard --by accuracy --min-resolved 3
 
 # Compare model/provider performance
 uv run stocksage models
+
+# Queue one stock for background analysis
+uv run stocksage queue add AAPL --date 2026-05-01
+
+# Queue a batch for the same date
+uv run stocksage queue add-batch AAPL MSFT NVDA GOOGL AMZN --date 2026-05-01
+
+# Inspect queued/running/completed/failed jobs
+uv run stocksage queue list
+
+# Process queued work; default is one worker to control LLM/API cost
+uv run stocksage queue run --limit 5
+
+# Retry one failed job or all failed jobs
+uv run stocksage queue retry 12
+uv run stocksage queue retry --failed
 ```
 
 The compatibility module entry point remains available:
@@ -90,5 +106,8 @@ uv run python -m cli.main --help
 
 - `stocksage analyze` makes live LLM and market-data calls.
 - `stocksage resolve` only resolves analyses old enough to have the configured holding period.
-- Until Milestone 04 adds the queue worker, run batch analyses one ticker at a time or with a
-  local shell loop that calls `stocksage analyze` repeatedly.
+- `stocksage queue run` defaults to one concurrent analysis because each job can make live LLM and
+  market-data calls. Increase `--max-workers` only when the provider budget and rate limits are
+  comfortable.
+- Use `stocksage queue list --status failed` and `stocksage queue retry --failed` to resume failed
+  batches without re-creating completed analyses.

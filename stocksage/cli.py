@@ -1,20 +1,33 @@
 """StockSage CLI entry point."""
 
-import json
 import sys
-from datetime import UTC, date, datetime
-from typing import NamedTuple
+from datetime import date
 
 import click
 from rich.console import Console
 from tabulate import tabulate
 
 from config import settings
+from core.analysis_runs import (
+    mark_analysis_failed,
+    persist_analysis_result,
+)
+from core.analysis_runs import (
+    prepare_analysis_row as _prepare_analysis_row,
+)
 from core.analyzer import AnalysisResult, Analyzer
 from core.db import SessionLocal, init_db
 from core.memory_sync import sync_resolved_outcomes_to_memory
-from core.models import Analysis, AnalysisDetail
+from core.models import Analysis
 from core.outcomes import resolve_pending_report
+from core.queueing import (
+    QUEUE_STATUSES,
+    clear_completed_queue_items,
+    enqueue_analysis,
+    list_queue_items,
+    retry_failed_queue_items,
+    retry_queue_item,
+)
 from core.trends import (
     get_all_ticker_stats,
     get_model_stats,
@@ -22,63 +35,9 @@ from core.trends import (
     is_correct_alpha_direction,
     is_correct_raw_direction,
 )
+from worker.runner import run_queued_jobs
 
 console = Console()
-
-
-class AnalysisRunPrep(NamedTuple):
-    analysis: Analysis
-    should_run: bool
-    reason: str
-
-
-def _prepare_analysis_row(db, ticker: str, trade_date: date, force: bool) -> AnalysisRunPrep:
-    existing = (
-        db.query(Analysis)
-        .filter(Analysis.ticker == ticker, Analysis.trade_date == trade_date)
-        .first()
-    )
-
-    if existing and not force:
-        return AnalysisRunPrep(existing, False, existing.status)
-
-    now = datetime.now(UTC)
-    if existing:
-        if existing.detail is not None:
-            db.delete(existing.detail)
-        if existing.outcome is not None:
-            db.delete(existing.outcome)
-        db.flush()
-
-        existing.run_at = now
-        existing.completed_at = None
-        existing.status = "running"
-        existing.rating = None
-        existing.executive_summary = None
-        existing.investment_thesis = None
-        existing.price_target = None
-        existing.time_horizon = None
-        existing.llm_provider = settings.llm_provider
-        existing.deep_model = settings.deep_think_llm
-        existing.quick_model = settings.quick_think_llm
-        existing.error_message = None
-        db.commit()
-        db.refresh(existing)
-        return AnalysisRunPrep(existing, True, "forced")
-
-    row = Analysis(
-        ticker=ticker,
-        trade_date=trade_date,
-        run_at=now,
-        status="running",
-        llm_provider=settings.llm_provider,
-        deep_model=settings.deep_think_llm,
-        quick_model=settings.quick_think_llm,
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return AnalysisRunPrep(row, True, "created")
 
 
 @click.group()
@@ -104,7 +63,7 @@ def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
     parsed_date = date.fromisoformat(trade_date) if trade_date else date.today()
 
     with SessionLocal() as db:
-        prep = _prepare_analysis_row(db, ticker, parsed_date, force)
+        prep = _prepare_analysis_row(db, ticker, parsed_date, force, settings)
         if not prep.should_run:
             if prep.reason == "completed":
                 detail = f"Already analyzed {ticker} on {parsed_date} (id={prep.analysis.id})."
@@ -125,41 +84,12 @@ def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
         result: AnalysisResult = analyzer.run(ticker, parsed_date)
     except Exception as exc:
         with SessionLocal() as db:
-            row = db.get(Analysis, analysis_id)
-            row.status = "failed"
-            row.error_message = str(exc)
-            db.commit()
+            mark_analysis_failed(db, analysis_id, str(exc))
         console.print(f"[red]Analysis failed: {exc}[/red]")
         raise SystemExit(1) from exc
 
     with SessionLocal() as db:
-        row = db.get(Analysis, analysis_id)
-        row.status = "completed"
-        row.completed_at = datetime.now(UTC)
-        row.rating = result.rating
-        row.executive_summary = result.executive_summary
-        row.investment_thesis = result.investment_thesis
-        row.price_target = result.price_target
-        row.time_horizon = result.time_horizon
-
-        detail = AnalysisDetail(
-            analysis_id=analysis_id,
-            market_report=result.market_report,
-            sentiment_report=result.sentiment_report,
-            news_report=result.news_report,
-            fundamentals_report=result.fundamentals_report,
-            bull_history=result.bull_history,
-            bear_history=result.bear_history,
-            research_decision=result.research_decision,
-            trader_plan=result.trader_plan,
-            risk_aggressive=result.risk_aggressive,
-            risk_conservative=result.risk_conservative,
-            risk_neutral=result.risk_neutral,
-            risk_decision=result.risk_decision,
-            full_state_json=json.dumps(result.full_state, default=str),
-        )
-        db.add(detail)
-        db.commit()
+        persist_analysis_result(db, analysis_id, result)
 
     console.print("\n[bold green]=== DECISION ===[/bold green]")
     console.print(f"[bold]Ticker:[/bold]  {ticker}")
@@ -334,6 +264,166 @@ def list_analyses(ticker: str, status: str, n: int):
     )
 
 
+@cli.group()
+def queue():
+    """Manage queued analysis jobs."""
+    pass
+
+
+@queue.command("add")
+@click.argument("ticker")
+@click.option("--date", "trade_date", default=None, help="Trade date YYYY-MM-DD (default: today)")
+@click.option("--priority", default=0, type=int, help="Higher priority runs first")
+def queue_add(ticker: str, trade_date: str | None, priority: int):
+    """Queue one ticker for analysis."""
+    init_db()
+    parsed_date = _parse_trade_date(trade_date)
+    with SessionLocal() as db:
+        result = enqueue_analysis(db, ticker, parsed_date, priority)
+    if result.created:
+        console.print(
+            f"[green]Queued {ticker.upper()} on {parsed_date} "
+            f"(id={result.queue_item.id}, priority={priority}).[/green]"
+        )
+    elif result.queue_item is not None:
+        console.print(
+            f"[yellow]{ticker.upper()} on {parsed_date} already has queue job "
+            f"id={result.queue_item.id} status={result.reason}.[/yellow]"
+        )
+    else:
+        console.print(
+            f"[yellow]{ticker.upper()} on {parsed_date} skipped: {result.reason} "
+            f"(analysis id={result.analysis.id}).[/yellow]"
+        )
+
+
+@queue.command("add-batch")
+@click.argument("tickers", nargs=-1, required=True)
+@click.option("--date", "trade_date", default=None, help="Trade date YYYY-MM-DD (default: today)")
+@click.option("--priority", default=0, type=int, help="Higher priority runs first")
+def queue_add_batch(tickers: tuple[str, ...], trade_date: str | None, priority: int):
+    """Queue multiple tickers for analysis."""
+    init_db()
+    parsed_date = _parse_trade_date(trade_date)
+    created = 0
+    skipped = 0
+    rows = []
+    with SessionLocal() as db:
+        for ticker in tickers:
+            result = enqueue_analysis(db, ticker, parsed_date, priority)
+            if result.created:
+                created += 1
+                rows.append([result.queue_item.id, ticker.upper(), parsed_date, "queued"])
+            else:
+                skipped += 1
+                queue_id = result.queue_item.id if result.queue_item is not None else "-"
+                rows.append([queue_id, ticker.upper(), parsed_date, result.reason])
+    console.print(f"[green]Queued {created} ticker(s); skipped {skipped}.[/green]")
+    print(
+        tabulate(rows, headers=["Queue ID", "Ticker", "Date", "Result"], tablefmt="rounded_outline")
+    )
+
+
+@queue.command("list")
+@click.option("--status", default=None, type=click.Choice(QUEUE_STATUSES), help="Filter by status")
+@click.option("--n", default=50, type=int, help="Max rows to show")
+def queue_list(status: str | None, n: int):
+    """List queued analysis jobs."""
+    init_db()
+    with SessionLocal() as db:
+        rows = list_queue_items(db, status=status, limit=n)
+    table_data = [
+        [
+            item.id,
+            item.ticker,
+            str(item.trade_date),
+            item.status,
+            item.priority,
+            item.attempts,
+            item.analysis_id or "-",
+            _short_time(item.queued_at),
+            _short_time(item.started_at),
+            _short_time(item.completed_at),
+            _short_error(item.last_error),
+        ]
+        for item in rows
+    ]
+    print(
+        tabulate(
+            table_data,
+            headers=[
+                "ID",
+                "Ticker",
+                "Date",
+                "Status",
+                "Priority",
+                "Attempts",
+                "Analysis",
+                "Queued",
+                "Started",
+                "Done",
+                "Error",
+            ],
+            tablefmt="rounded_outline",
+        )
+    )
+
+
+@queue.command("retry")
+@click.argument("queue_id", required=False, type=int)
+@click.option("--failed", "retry_failed", is_flag=True, help="Retry all failed queue jobs")
+def queue_retry(queue_id: int | None, retry_failed: bool):
+    """Retry one failed queue job or all failed jobs."""
+    if queue_id is None and not retry_failed:
+        raise click.UsageError("Pass QUEUE_ID or --failed.")
+    init_db()
+    with SessionLocal() as db:
+        if retry_failed:
+            count = retry_failed_queue_items(db)
+            console.print(f"[green]Re-queued {count} failed job(s).[/green]")
+            return
+        row = retry_queue_item(db, queue_id)
+    if row is None:
+        console.print(f"[red]Queue job {queue_id} not found.[/red]")
+        raise SystemExit(1)
+    console.print(f"[green]Re-queued job {row.id} for {row.ticker} on {row.trade_date}.[/green]")
+
+
+@queue.command("clear-completed")
+def queue_clear_completed():
+    """Delete completed queue records."""
+    init_db()
+    with SessionLocal() as db:
+        count = clear_completed_queue_items(db)
+    console.print(f"[green]Cleared {count} completed queue job(s).[/green]")
+
+
+@queue.command("run")
+@click.option("--limit", default=None, type=int, help="Maximum queued jobs to process")
+@click.option("--max-workers", default=1, type=int, help="Maximum concurrent analyses")
+@click.option("--debug", is_flag=True, default=False, help="Enable TradingAgents debug streaming")
+@click.option(
+    "--reset-stale-minutes",
+    default=120,
+    type=int,
+    help="Re-queue running jobs older than this many minutes",
+)
+def queue_run(limit: int | None, max_workers: int, debug: bool, reset_stale_minutes: int):
+    """Run queued analysis jobs."""
+    init_db()
+    report = run_queued_jobs(
+        max_jobs=limit,
+        max_workers=max_workers,
+        debug=debug,
+        reset_stale_minutes=reset_stale_minutes,
+    )
+    console.print(
+        f"[green]Worker attempted {report.attempted} job(s): "
+        f"{report.completed} completed, {report.failed} failed, "
+        f"{report.skipped} skipped, {report.reset_stale} reset stale.[/green]"
+    )
+
+
 @cli.command()
 @click.option(
     "--by",
@@ -406,6 +496,20 @@ def models_command():
             tablefmt="rounded_outline",
         )
     )
+
+
+def _parse_trade_date(value: str | None) -> date:
+    return date.fromisoformat(value) if value else date.today()
+
+
+def _short_time(value) -> str:
+    return str(value)[:16] if value else "-"
+
+
+def _short_error(value: str | None) -> str:
+    if not value:
+        return ""
+    return value if len(value) <= 50 else f"{value[:47]}..."
 
 
 if __name__ == "__main__":

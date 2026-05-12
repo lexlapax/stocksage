@@ -11,7 +11,7 @@ with useful M03 alpha-aware metrics.
 
 ## Status
 
-**Planned.** Starts after Milestone 04 makes batch analysis manageable.
+**Planned.** This is the next active milestone after Milestone 04 acceptance.
 
 ---
 

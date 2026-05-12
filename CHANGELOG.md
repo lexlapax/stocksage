@@ -15,8 +15,13 @@ All notable changes to StockSage are tracked here.
 - Trend analytics for ticker accuracy, rating calibration, model performance, rolling accuracy, and cross-ticker lessons.
 - Alpha-aware accuracy semantics for five-tier ratings, with raw-direction accuracy kept as a diagnostic.
 - DB-to-TradingAgents memory sync for resolved outcomes, including pending-entry updates and idempotent appends.
+- Shared analysis-run persistence helpers used by both single CLI runs and queued worker runs.
+- Operational queue commands: `queue add`, `queue add-batch`, `queue list`, `queue retry`, `queue clear-completed`, and `queue run`.
+- Queue worker with retry support, stale running-job reset, conservative default concurrency, and configurable `--max-workers`.
+- Alembic queue-state migration adding status, timestamps, attempts, and last-error tracking to `analysis_queue`.
 - Unit and CLI integration tests covering analyzer parsing, ORM relationships, outcome resolution, trend analytics, and forced reruns.
 - Memory sync tests covering pending-entry resolution, fallback decision rendering, and idempotency.
+- Queue and worker tests covering enqueueing, duplicate protection, retry, failure, stale recovery, and worker persistence.
 - Ruff linting and formatting checks configured in `pyproject.toml`.
 - Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, and M05 web UI/charts.
 - Focused docs for local setup/CLI usage and development workflow.
@@ -27,6 +32,7 @@ All notable changes to StockSage are tracked here.
 - `summary` now shows resolved counts, alpha-direction accuracy, raw-direction accuracy, average returns, rating breakdowns, trend markers, and recent outcome correctness.
 - `leaderboard --by accuracy` and `models` now report alpha-direction accuracy by default.
 - `resolve` now syncs resolved outcomes into TradingAgents memory, and `analyze` syncs before live runs so prior lessons can feed `past_context`.
+- `analyze` now uses the shared persistence path also used by the queue worker.
 - Project setup documentation now uses `uv` consistently.
 - The `stocksage` console script now points at `stocksage.cli:cli` to avoid collisions with third-party `cli` packages.
 - Milestone docs now mark M01 and M02 accepted after live validation and move raw-vs-alpha accuracy plus memory sync into M03.
@@ -34,4 +40,4 @@ All notable changes to StockSage are tracked here.
 
 ### Known Gaps
 
-- Async worker and web UI remain planned for M04 and M05.
+- Web UI remains planned for M05.

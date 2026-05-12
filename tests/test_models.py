@@ -75,3 +75,6 @@ def test_analysis_queue(db):
     db.commit()
     fetched = db.query(AnalysisQueue).filter_by(ticker="MSFT").first()
     assert fetched.priority == 1
+    assert fetched.status == "queued"
+    assert fetched.attempts == 0
+    assert fetched.last_error is None
