@@ -1,6 +1,7 @@
 # Getting Started
 
-Use this guide to install StockSage locally, configure live LLM access, and run the CLI.
+Use this guide to install StockSage locally, configure live LLM access, run the CLI, and start
+the browser UI.
 
 ## Requirements
 
@@ -110,8 +111,8 @@ uv run stocksage queue retry --failed
 
 ## Web App
 
-Milestone 06 serves the browser UI through FastAPI. T02 adds the shared Jinja2 shell, top
-navigation, and initial server-rendered pages; deeper page behavior and charts continue in T03-T05.
+The local browser UI is served through FastAPI with server-rendered Jinja2 templates, targeted
+HTMX updates, and Chart.js charts loaded from CDN.
 
 ```bash
 uv run alembic upgrade head
@@ -124,6 +125,9 @@ Open:
 - `http://127.0.0.1:8000/workspace` — My Workspace for the current OS user
 - `http://127.0.0.1:8000/queue` — Queue Status
 - `http://127.0.0.1:8000/health` — health check
+
+Use the `+ Analyze` button to submit one ticker/date at a time. The UI reuses existing shared
+reports when the same ticker/date has already completed or is already queued/running.
 
 The compatibility module entry point remains available:
 

@@ -8,6 +8,8 @@ surfaces historical trends in a browser-based UI. The system starts as a local C
 multi-user request attribution before the web layer, and grows into a web application without
 architectural rewrites.
 
+Current release baseline: `0.0.1`, accepted through Milestone 06.
+
 ---
 
 ## Design Decisions
@@ -222,7 +224,7 @@ stocksage/
 │   │   └── web.py             ← Research, Workspace, Analysis, Queue routes
 ├── web/
 │   ├── templates/             ← Jinja2 app shell and page templates
-│   └── static/                ← CSS and future lightweight browser assets
+│   └── static/                ← CSS and lightweight Chart.js rendering assets
 ├── alembic/
 │   ├── env.py
 │   └── versions/
@@ -243,10 +245,10 @@ stocksage/
 | **03** | Accuracy Semantics + TradingAgents Memory Sync | accepted | `docs/03-milestone.md` |
 | **04** | Async Job Queue + Worker | accepted | `docs/04-milestone.md` |
 | **05** | User Identity + Shared Analysis Ownership Foundation | accepted | `docs/05-milestone.md` |
-| **06** | FastAPI + Jinja2/HTMX Web UI + Charts | active next | `docs/06-milestone.md` |
+| **06** | FastAPI + Jinja2/HTMX Web UI + Charts | accepted | `docs/06-milestone.md` |
 
-Milestone 06 started with the accepted review gate in `docs/06-ui-design.md`. Keep route and
-template work aligned with that wireframe as implementation continues.
+Milestone 06 was accepted after the reviewed UI wireframe, FastAPI route/template implementation,
+HTMX queue/workspace controls, Chart.js visualizations, local run docs, and route/template tests.
 
 ---
 

@@ -27,7 +27,7 @@ and DB schema: `docs/plan.md`
 
 ## Current Status
 
-**Active milestone: 06 — FastAPI + Jinja2/HTMX Web UI + Charts**
+**Current status: `0.0.1` release baseline — Milestone 06 accepted**
 Detailed task lists and acceptance criteria:
 `docs/01-milestone.md`, `docs/02-milestone.md`, `docs/03-milestone.md`,
 `docs/04-milestone.md`, `docs/05-milestone.md`, `docs/06-milestone.md`
@@ -61,10 +61,12 @@ Detailed task lists and acceptance criteria:
 - `docs/03-milestone.md` — accepted alpha-aware accuracy and memory sync work
 - `docs/04-milestone.md` — accepted async queue + worker work
 - `docs/05-milestone.md` — accepted user identity + request history work
-- `docs/06-milestone.md` — planned web UI + charts work; current focus
+- `docs/06-milestone.md` — accepted web UI + charts work
 
-**Next action:** Continue Milestone 06 with T06 local run docs and template coverage:
+**Next action:** Run a local human smoke test and plan the next milestone:
 ```bash
+uv run alembic upgrade head
+uv run uvicorn api.app:app --reload
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
@@ -75,8 +77,8 @@ a 20-stock resolved validation batch. Milestone 03 is accepted after alpha-aware
 TradingAgents memory sync landed with tests. Milestone 04 is accepted after queue commands, worker
 processing, retries, stale-run recovery, and the queue migration landed with tests.
 Milestone 05 is accepted after adding `users`, `analysis_requests`, CLI user flags, queue
-attribution, migration backfill, and tests. Milestone 06 is building the web UI on the same shared
-canonical analysis model and M05 request history.
+attribution, migration backfill, and tests. Milestone 06 is accepted after adding the local web UI,
+HTMX partials, queue controls, Chart.js charts, run docs, and route/template tests.
 
 ---
 
@@ -157,4 +159,5 @@ or incomplete.
 
 ## Milestones
 
-Current work is tracked in `docs/06-milestone.md`. Check off tasks as they are completed.
+Milestones 01-06 are accepted. Before starting the next implementation milestone, update
+`docs/plan.md` and add a milestone doc that names the new scope and acceptance criteria.

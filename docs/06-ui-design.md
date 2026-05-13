@@ -382,5 +382,5 @@ a `<script>` tag.
 This design was reviewed and accepted before T01 began. T02 implements the shared app shell and
 initial server-rendered page templates; T03 fills in Research, Workspace, Ticker Intelligence, and
 Analysis Report content; T04 adds the modal reuse note, queue polling, and retry controls; T05 adds
-the Chart.js chart layer using server-serialized JSON. Keep adjusting this document when UX
-decisions change, and keep route/template implementation aligned with it.
+the Chart.js chart layer using server-serialized JSON; T06 completes local run docs and empty-state
+coverage. Milestone 06 is accepted as the baseline local web UI.

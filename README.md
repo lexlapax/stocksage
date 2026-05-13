@@ -2,8 +2,9 @@
 
 StockSage wraps the [TradingAgents](https://github.com/TauricResearch/TradingAgents)
 multi-agent LLM framework with persistent storage, outcome tracking, and trend analytics.
-It has a local CLI and an in-progress FastAPI + Jinja2/HTMX browser UI over the same shared
-analysis database.
+It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared analysis database.
+
+**Current release:** `0.0.1`
 
 ## Where We Are
 
@@ -15,9 +16,8 @@ analysis database.
   visible as a diagnostic, and resolved DB outcomes sync into TradingAgents memory.
 - **M04 accepted:** queue commands and the worker make batch analysis resumable and retryable.
 - **M05 accepted:** user identity and request history now track who asked for shared analyses.
-- **M06 in progress:** route foundation, app shell, research pages, user workspace, modal
-  submission, queue retry controls, and Chart.js visualizations are complete; final docs/tests
-  remain.
+- **M06 accepted:** local FastAPI + Jinja2/HTMX web UI, user workspace, queue controls,
+  Chart.js visualizations, local run docs, and route/template tests are complete.
 
 ## Project Docs
 
@@ -36,7 +36,5 @@ analysis database.
 
 ## Next Steps
 
-Finish Milestone 06:
-
-1. Finish local run docs and template coverage.
-2. Keep route tests, template tests, Ruff, and pytest green as the UI fills in.
+1. Run the web UI locally against your real database and do a human smoke test.
+2. Decide the next milestone scope after M06 based on that walkthrough.

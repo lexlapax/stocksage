@@ -11,8 +11,7 @@ with useful M03 alpha-aware metrics and M05 user-scoped history.
 
 ## Status
 
-**In progress.** T00 design, T01 route foundation, T02 layout/navigation, T03 core pages,
-T04 queue controls, and T05 charts are implemented.
+**Accepted.** T00-T06 are implemented, tested, documented, and ready for local user testing.
 
 ---
 
@@ -45,8 +44,7 @@ Design spec: [06-ui-design.md](06-ui-design.md)
   and Queue Status (`/queue`, admin-only, not in primary nav).
 - [x] Keep route handlers thin; use `core/` modules for business logic.
 
-T01 route responses are JSON-backed foundation responses. T02 will render the accepted wireframe
-with Jinja2 templates on the same route map.
+T01 established the route map used by the server-rendered Jinja2 pages.
 
 ### T02 · Jinja2 layout and navigation
 
@@ -57,8 +55,8 @@ with Jinja2 templates on the same route map.
   queued/running), sort/filter changes on the Research table, and retry actions.
 - [x] Keep the UI dense, clear, and operational rather than marketing-style.
 
-T02 adds the shared app shell, top navigation, initial page templates, static CSS, and HTML route
-tests. HTMX is loaded in the shell but only targeted interactions will be added in later tasks.
+T02 added the shared app shell, top navigation, initial page templates, static CSS, and HTML route
+tests.
 
 ### T03 · Analysis and ticker pages
 
@@ -71,8 +69,7 @@ tests. HTMX is loaded in the shell but only targeted interactions will be added 
   when outcome is resolved; summary, thesis, and tabbed evidence sections.
 - [x] Include raw return and alpha return side by side in the outcome block.
 
-T03 uses server-rendered chart sections and data structures. T05 will replace/enhance the chart
-rendering with Chart.js without changing the page hierarchy.
+T03 established the page hierarchy and data structures that T05 renders with Chart.js.
 
 ### T04 · Queue controls
 
@@ -105,28 +102,31 @@ pipeline.
 
 ### T06 · Local run docs and tests
 
-- [ ] Document `uv run uvicorn ...` or equivalent local startup command.
-- [ ] Add route tests for core pages and JSON/partial endpoints.
-- [ ] Add template rendering tests for empty DB and seeded DB states.
-- [ ] Keep tests network-free and LLM-free.
+- [x] Document `uv run uvicorn ...` or equivalent local startup command.
+- [x] Add route tests for core pages and JSON/partial endpoints.
+- [x] Add template rendering tests for empty DB and seeded DB states.
+- [x] Keep tests network-free and LLM-free.
+
+T06 documents the local web startup flow in `docs/getting-started.md`, updates development
+workflow notes for the lightweight chart JavaScript, and adds empty/thin/seeded rendering coverage.
 
 ---
 
 ## Acceptance Criteria
 
 - [x] UI design is reviewed and accepted before template implementation starts.
-- [ ] The Research landing shows all analyzed stocks sorted by best alpha, with working sort and
+- [x] The Research landing shows all analyzed stocks sorted by best alpha, with working sort and
   filter controls and an accuracy-over-time chart.
-- [ ] Clicking a stock opens the Ticker Intelligence page with alpha bar chart and (when data
+- [x] Clicking a stock opens the Ticker Intelligence page with alpha bar chart and (when data
   allows) a rating calibration chart.
-- [ ] Clicking an analysis opens the Analysis Report with outcome block, summary, thesis, and
+- [x] Clicking an analysis opens the Analysis Report with outcome block, summary, thesis, and
   tabbed evidence.
-- [ ] My Workspace shows the current user's submissions with live status and HTMX polling while
+- [x] My Workspace shows the current user's submissions with live status and HTMX polling while
   work is active.
-- [ ] A user can submit a new analysis via the modal and retry a failed submission.
-- [ ] Empty DB states and thin-data states (e.g. fewer than 3 outcomes) render clearly without
+- [x] A user can submit a new analysis via the modal and retry a failed submission.
+- [x] Empty DB states and thin-data states (e.g. fewer than 3 outcomes) render clearly without
   crashes or empty chart frames.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest` pass.
+- [x] `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest` pass.
 
 ---
 

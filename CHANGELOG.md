@@ -2,7 +2,11 @@
 
 All notable changes to StockSage are tracked here.
 
-## [0.1.0] - 2026-05-12
+## [0.0.1] - 2026-05-13
+
+First local release. This release accepts Milestones 01-06: persistent CLI analysis, outcome
+tracking, alpha-aware trends, TradingAgents memory sync, resumable queue/worker processing,
+multi-user request attribution, and the local FastAPI + Jinja2/HTMX web UI with Chart.js charts.
 
 ### Added
 
@@ -45,13 +49,14 @@ All notable changes to StockSage are tracked here.
 - `resolve` now syncs resolved outcomes into TradingAgents memory, and `analyze` syncs before live runs so prior lessons can feed `past_context`.
 - `analyze` now uses the shared persistence path also used by the queue worker.
 - Project setup documentation now uses `uv` consistently.
+- Local web startup documentation now covers `uv run uvicorn api.app:app --reload`.
 - The `stocksage` console script now points at `stocksage.cli:cli` to avoid collisions with third-party `cli` packages.
 - Milestone docs now mark M01 and M02 accepted after live validation and move raw-vs-alpha accuracy plus memory sync into M03.
 - `README.md` is now a concise project front door, with operational details moved to `docs/getting-started.md` and `docs/development.md`.
 - Roadmap now inserts M05 user identity and shared-analysis request history before moving web UI/charts to M06.
-- Active roadmap now marks M05 accepted and moves M06 web UI/charts into the next implementation slot.
+- Active roadmap now marks M01-M06 accepted through the local web UI/charts milestone.
 - FastAPI, Uvicorn, Jinja2, and form parsing dependencies are now first-class project dependencies for the web UI milestone.
 
 ### Known Gaps
 
-- M06 final local-run docs and empty/thin-state template coverage remain in progress.
+- The web UI is local-only; authentication, authorization, and hosted deployment are future work.

@@ -27,6 +27,39 @@ def test_health_route(db):
     assert response.json() == {"status": "ok", "app": "stocksage"}
 
 
+def test_static_chart_asset_is_served(db):
+    response = _client(db).get("/static/charts.js")
+
+    assert response.status_code == 200
+    assert "renderSystemAccuracy" in response.text
+
+
+def test_empty_db_pages_render_clear_states(db):
+    client = _client(db)
+
+    research = client.get("/")
+    workspace = client.get("/workspace?user=alice")
+    queue = client.get("/queue")
+    ticker = client.get("/ticker/ZZZZ")
+
+    assert research.status_code == 200
+    assert "No resolved analyses yet" in research.text
+    assert "system-accuracy-chart" not in research.text
+    assert workspace.status_code == 200
+    assert "No submissions yet" in workspace.text
+    assert queue.status_code == 200
+    assert "No queue jobs" in queue.text
+    assert ticker.status_code == 200
+    assert "No reports for ZZZZ" in ticker.text
+
+
+def test_missing_analysis_returns_404(db):
+    response = _client(db).get("/analysis/999")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Analysis report not found."
+
+
 def test_research_landing_returns_system_summary(db, completed_analysis):
     db.add(
         Outcome(
