@@ -8,7 +8,7 @@ surfaces historical trends in a browser-based UI. The system starts as a local C
 multi-user request attribution before the web layer, and grows into a web application without
 architectural rewrites.
 
-Current release baseline: `0.0.1`, accepted through Milestone 06.
+Current release baseline: `0.0.1`, accepted through Milestone 07.
 
 ---
 
@@ -246,12 +246,12 @@ stocksage/
 | **04** | Async Job Queue + Worker | accepted | `docs/04-milestone.md` |
 | **05** | User Identity + Shared Analysis Ownership Foundation | accepted | `docs/05-milestone.md` |
 | **06** | FastAPI + Jinja2/HTMX Web UI + Charts | accepted | `docs/06-milestone.md` |
-| **07** | Hardening & Polish | active next | `docs/07-milestone.md` |
+| **07** | Hardening & Polish | accepted | `docs/07-milestone.md` |
 
 Milestone 06 was accepted after the reviewed UI wireframe, FastAPI route/template implementation,
 HTMX queue/workspace controls, Chart.js visualizations, local run docs, and route/template tests.
-Milestone 07 tracks post-release hardening gaps found after comparing the accepted M01-M06 specs
-against the `0.0.1` implementation.
+Milestone 07 is accepted after closing post-release hardening gaps found by comparing the accepted
+M01-M06 specs against the `0.0.1` implementation.
 
 ---
 

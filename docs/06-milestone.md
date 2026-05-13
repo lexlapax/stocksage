@@ -48,7 +48,7 @@ T01 established the route map used by the server-rendered Jinja2 pages.
 
 ### T02 · Jinja2 layout and navigation
 
-- [x] Create a base template with a top navigation bar: Research | My Workspace | [user ▾] | [+ Analyze].
+- [x] Create a base template with a top navigation bar: Research | My Workspace | [user] | [+ Analyze].
   No persistent left sidebar.
 - [x] Use server-rendered pages as the primary experience.
 - [x] Use HTMX only for targeted partial updates: My Workspace status polling (while rows are
@@ -77,7 +77,8 @@ T03 established the page hierarchy and data structures that T05 renders with Cha
   Modal is triggered from the [+ Analyze] button; submits via POST and redirects to My Workspace.
 - [x] Add retry action for failed submissions (in My Workspace and Queue Status pages).
 - [x] Add Queue Status page (`/queue`): table of queued/running/failed items with HTMX auto-refresh.
-  This page is not in primary navigation; link to it from the running-work indicator in My Workspace.
+  This page is not in primary navigation; M07 makes the low-profile My Workspace link always
+  visible.
 - [x] No batch enqueue form in this milestone.
 
 T04 keeps queue management deliberately narrow: one-stock submission from the modal, shared-report

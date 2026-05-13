@@ -1,0 +1,53 @@
+<section id="research-tickers" class="panel">
+  <div class="panel-header">
+    <h2>Analyzed stocks</h2>
+    <p>Click any ticker to open its intelligence page.</p>
+  </div>
+  {% if view.tickers %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Last rating</th>
+          <th>Last analyzed</th>
+          <th>Reports</th>
+          <th>Checked</th>
+          <th>Hit rate</th>
+          <th>Avg alpha</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in view.tickers %}
+        <tr>
+          <td><a class="strong-link" href="/ticker/{{ row.ticker }}">{{ row.ticker }}</a></td>
+          <td>{{ row.last_rating or "-" }}</td>
+          <td>{{ row.last_analyzed }}</td>
+          <td>{{ row.total_analyses }}</td>
+          <td>{{ row.resolved_count }}</td>
+          {% if row.resolved_count %}
+          <td>{{ "%.0f%%"|format(row.hit_rate * 100) }}</td>
+          <td class="{% if row.avg_alpha_return >= 0 %}positive{% else %}negative{% endif %}">
+            {{ "%+.1f%%"|format(row.avg_alpha_return * 100) }}
+          </td>
+          <td class="sparkline">
+            {% for point in row.trend %}{% if point.correct_call %}▇{% else %}▂{% endif %}{% endfor %}
+          </td>
+          {% else %}
+          <td><span class="muted">Pending</span></td>
+          <td><span class="muted">Pending</span></td>
+          <td><span class="muted">-</span></td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No completed analyses yet</h3>
+    <p>Results appear after StockSage completes an analysis.</p>
+  </div>
+  {% endif %}
+</section>

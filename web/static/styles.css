@@ -494,22 +494,27 @@ tbody tr:hover {
   border-bottom: 1px solid var(--line);
 }
 
-.evidence-tabs a {
+.evidence-tab {
   display: inline-flex;
   align-items: center;
   min-height: 32px;
   padding: 0 10px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 6px;
   background: white;
   color: var(--slate);
+  font: inherit;
   font-weight: 800;
+  cursor: pointer;
+}
+
+.evidence-tab[aria-selected="true"] {
+  border-color: var(--blue);
+  background: #edf2ff;
+  color: var(--blue);
 }
 
 .evidence-panels {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
   padding: 18px;
 }
 
@@ -527,6 +532,7 @@ tbody tr:hover {
 .evidence-panel p {
   margin-top: 8px;
   color: var(--slate);
+  white-space: pre-wrap;
 }
 
 .modal-anchor {
@@ -630,8 +636,7 @@ tbody tr:hover {
     display: grid;
   }
 
-  .metric-grid,
-  .evidence-panels {
+  .metric-grid {
     grid-template-columns: 1fr;
   }
 

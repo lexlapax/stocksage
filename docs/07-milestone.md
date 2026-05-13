@@ -8,7 +8,8 @@ analysis below is resolved and the full quality gate still passes.
 
 ## Status
 
-**Planned / docs-only rebaseline complete.** Tasks are ordered by user impact and release risk.
+**Accepted.** All tasks are implemented, tested, documented, and ready for the retagged `0.0.1`
+release commit.
 
 ---
 
@@ -98,69 +99,69 @@ an analysis without an `AnalysisDetail` row renders cleanly.
 
 ### T01 · Show completed-but-unresolved analyses on Research (G3)
 
-- [ ] Query all completed analyses for the Research table, not only rows with outcomes.
-- [ ] Exclude unresolved rows from hit-rate, average-alpha, trend, and chart calculations.
-- [ ] Render unresolved table metrics as `Pending` or `-`, and keep those tickers clickable.
-- [ ] Add a test proving a completed analysis without an outcome appears on Research.
+- [x] Query all completed analyses for the Research table, not only rows with outcomes.
+- [x] Exclude unresolved rows from hit-rate, average-alpha, trend, and chart calculations.
+- [x] Render unresolved table metrics as `Pending` or `-`, and keep those tickers clickable.
+- [x] Add a test proving a completed analysis without an outcome appears on Research.
 
 ### T02 · Make evidence tabs real tabs (G1)
 
-- [ ] Replace the always-visible evidence grid with one visible panel at a time.
-- [ ] Use accessible tab semantics (`role="tablist"`, `role="tab"`, `role="tabpanel"`) and no JS
+- [x] Replace the always-visible evidence grid with one visible panel at a time.
+- [x] Use accessible tab semantics (`role="tablist"`, `role="tab"`, `role="tabpanel"`) and no JS
   framework.
-- [ ] Default the Market tab/panel open on page load.
-- [ ] Add/adjust a route test that verifies the tab structure and hidden/deferred panels render.
+- [x] Default the Market tab/panel open on page load.
+- [x] Add/adjust a route test that verifies the tab structure and hidden/deferred panels render.
 
 ### T03 · Add HTMX Research table partial (G2)
 
-- [ ] Extract the ticker table into `web/templates/partials/research_tickers.html`.
-- [ ] Add a partial route for Research table updates.
-- [ ] Wire sort/filter controls with HTMX targeting the table partial while preserving full-page
+- [x] Extract the ticker table into `web/templates/partials/research_tickers.html`.
+- [x] Add a partial route for Research table updates.
+- [x] Wire sort/filter controls with HTMX targeting the table partial while preserving full-page
   GET fallback.
-- [ ] Add a test for the partial endpoint and at least one filtered response.
+- [x] Add a test for the partial endpoint and at least one filtered response.
 
 ### T04 · Fix queue navigation and user-label affordance (G4, G5)
 
-- [ ] Add a low-profile Queue Status link from My Workspace that is always visible and stays out
+- [x] Add a low-profile Queue Status link from My Workspace that is always visible and stays out
   of the primary nav.
-- [ ] Remove the caret from the static user pill until a real switcher exists.
-- [ ] Update tests/docs affected by the label and queue-link behavior.
+- [x] Remove the caret from the static user pill until a real switcher exists.
+- [x] Update tests/docs affected by the label and queue-link behavior.
 
 ### T05 · Clean code and version metadata (G6, G7)
 
-- [ ] Remove dead `_sort_ticker_stats` code.
-- [ ] Read FastAPI `version` from `importlib.metadata.version("stocksage")`.
-- [ ] Add a test asserting `/openapi.json` reports `"version": "0.0.1"`.
+- [x] Remove dead `_sort_ticker_stats` code.
+- [x] Read FastAPI `version` from `importlib.metadata.version("stocksage")`.
+- [x] Add a test asserting `/openapi.json` reports `"version": "0.0.1"`.
 
 ### T06 · Docs cleanup (G8-G11, G14, G15)
 
-- [ ] Fix the `CHANGELOG.md` `0.0.1` date to `2026-05-12`.
-- [ ] Replace machine-specific setup paths with placeholders.
-- [ ] Remove the private project-root row from `docs/plan.md`.
-- [ ] Remove/soften “Pydantic schemas” wording where it implies implemented schemas.
-- [ ] Document web user attribution: OS default, modal `Run as`, and `/workspace?user=alice`.
-- [ ] Add an M06 note that M07 tracks known post-release hardening gaps while M06 stays accepted.
+- [x] Fix the `CHANGELOG.md` `0.0.1` date to `2026-05-12`.
+- [x] Replace machine-specific setup paths with placeholders.
+- [x] Remove the private project-root row from `docs/plan.md`.
+- [x] Remove/soften “Pydantic schemas” wording where it implies implemented schemas.
+- [x] Document web user attribution: OS default, modal `Run as`, and `/workspace?user=alice`.
+- [x] Add an M06 note that M07 tracks known post-release hardening gaps while M06 stays accepted.
 
 ### T07 · Fill test coverage gaps (G12, G13)
 
-- [ ] Add `test_research_landing_respects_date_range_filter`.
-- [ ] Add `test_analysis_report_without_detail_renders_placeholders`.
+- [x] Add `test_research_landing_respects_date_range_filter`.
+- [x] Add `test_analysis_report_without_detail_renders_placeholders`.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Research shows completed analyses before outcomes are resolved.
-- [ ] Evidence sections behave as real one-panel-at-a-time tabs.
-- [ ] Research sort/filter changes can update the table through HTMX without replacing the whole
+- [x] Research shows completed analyses before outcomes are resolved.
+- [x] Evidence sections behave as real one-panel-at-a-time tabs.
+- [x] Research sort/filter changes can update the table through HTMX without replacing the whole
   page, with full-page fallback still working.
-- [ ] Queue Status is reachable from the UI even when no work is active.
-- [ ] The static user label no longer implies a dropdown.
-- [ ] `/openapi.json` reports `"version": "0.0.1"`.
-- [ ] Setup and plan docs have no private machine path.
-- [ ] Docs no longer imply implemented Pydantic API schemas.
-- [ ] Web user attribution is documented for local use.
-- [ ] `node --check web/static/charts.js`, `uv run ruff check .`,
+- [x] Queue Status is reachable from the UI even when no work is active.
+- [x] The static user label no longer implies a dropdown.
+- [x] `/openapi.json` reports `"version": "0.0.1"`.
+- [x] Setup and plan docs have no private machine path.
+- [x] Docs no longer imply implemented Pydantic API schemas.
+- [x] Web user attribution is documented for local use.
+- [x] `node --check web/static/charts.js`, `uv run ruff check .`,
   `uv run ruff format --check .`, and `uv run pytest` pass.
 
 ---
@@ -171,5 +172,5 @@ an analysis without an `AnalysisDetail` row renders cleanly.
   areas like authentication, deployment, or a full user switcher.
 - M06 remains accepted as the first release baseline. M07 is the hardening milestone that makes the
   accepted web experience match its intent more closely.
-- After M07 is accepted, likely M08 candidates are a real user switcher, authentication groundwork,
-  or server deployment docs.
+- Likely M08 candidates are a real user switcher, authentication groundwork, or server deployment
+  docs.

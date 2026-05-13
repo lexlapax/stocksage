@@ -18,7 +18,7 @@ outcome tracking, and a web UI. The core loop is:
 7. `worker/runner.py` processes queued analyses with conservative concurrency and retry support
 8. `core/users.py` and `core/request_history.py` track who asked for shared canonical analyses
 9. Milestone 06 adds the FastAPI + Jinja2/HTMX web UI and charts
-10. Milestone 07 tracks post-release hardening and polish gaps from the `0.0.1` baseline
+10. Milestone 07 closes post-release hardening and polish gaps from the `0.0.1` baseline
 
 Human-facing orientation starts in `README.md`. Local setup and CLI usage live in
 `docs/getting-started.md`; development workflow lives in `docs/development.md`. Full architecture
@@ -28,7 +28,7 @@ and DB schema: `docs/plan.md`
 
 ## Current Status
 
-**Current status: Milestone 07 active next — Hardening & Polish**
+**Current status: Milestone 07 accepted — Hardening & Polish**
 Detailed task lists and acceptance criteria:
 `docs/01-milestone.md`, `docs/02-milestone.md`, `docs/03-milestone.md`,
 `docs/04-milestone.md`, `docs/05-milestone.md`, `docs/06-milestone.md`,
@@ -64,11 +64,10 @@ Detailed task lists and acceptance criteria:
 - `docs/04-milestone.md` — accepted async queue + worker work
 - `docs/05-milestone.md` — accepted user identity + request history work
 - `docs/06-milestone.md` — accepted web UI + charts work
-- `docs/07-milestone.md` — active hardening and polish gap analysis
+- `docs/07-milestone.md` — accepted hardening and polish gap analysis
 
-**Next action:** Complete Milestone 07 hardening and polish:
+**Next action:** Plan the next milestone candidate:
 ```bash
-node --check web/static/charts.js
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
@@ -81,7 +80,8 @@ processing, retries, stale-run recovery, and the queue migration landed with tes
 Milestone 05 is accepted after adding `users`, `analysis_requests`, CLI user flags, queue
 attribution, migration backfill, and tests. Milestone 06 is accepted after adding the local web UI,
 HTMX partials, queue controls, Chart.js charts, run docs, and route/template tests.
-Milestone 07 is a no-new-scope hardening pass over the `0.0.1` release baseline.
+Milestone 07 is accepted after completing the no-new-scope hardening pass over the `0.0.1`
+release baseline.
 
 ---
 
@@ -162,5 +162,4 @@ or incomplete.
 
 ## Milestones
 
-Milestones 01-06 are accepted. Current work is tracked in `docs/07-milestone.md`; keep its
-checkboxes and acceptance criteria current as hardening tasks land.
+Milestones 01-07 are accepted. Choose and document the next milestone before starting new scope.

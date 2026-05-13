@@ -1,6 +1,6 @@
 """Tests for the M06 FastAPI route foundation."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -25,6 +25,13 @@ def test_health_route(db):
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "app": "stocksage"}
+
+
+def test_openapi_reports_package_version(db):
+    response = _client(db).get("/openapi.json")
+
+    assert response.status_code == 200
+    assert response.json()["info"]["version"] == "0.0.1"
 
 
 def test_static_chart_asset_is_served(db):
@@ -81,9 +88,114 @@ def test_research_landing_returns_system_summary(db, completed_analysis):
     assert "Research" in response.text
     assert "AAPL" in response.text
     assert "+2.0%" in response.text
+    assert 'id="research-tickers"' in response.text
+    assert 'hx-get="/research/partials/tickers"' in response.text
+    assert 'hx-target="#research-tickers"' in response.text
     assert "System accuracy over time" in response.text
     assert "system-accuracy-data" in response.text
     assert "https://cdn.jsdelivr.net/npm/chart.js" in response.text
+
+
+def test_research_tickers_partial_supports_filtered_updates(db, completed_analysis):
+    db.add(
+        Outcome(
+            analysis_id=completed_analysis.id,
+            resolved_at=datetime(2026, 1, 10),
+            raw_return=0.05,
+            alpha_return=0.02,
+            holding_days=5,
+            reflection="Useful call.",
+        )
+    )
+    msft = Analysis(
+        ticker="MSFT",
+        trade_date=date(2026, 1, 3),
+        run_at=datetime(2026, 1, 3, 9, 0),
+        completed_at=datetime(2026, 1, 3, 9, 5),
+        status="completed",
+        rating="Overweight",
+    )
+    db.add(msft)
+    db.flush()
+    db.add(
+        Outcome(
+            analysis_id=msft.id,
+            resolved_at=datetime(2026, 1, 10),
+            raw_return=0.02,
+            alpha_return=-0.01,
+            holding_days=5,
+            reflection="Missed call.",
+        )
+    )
+    db.commit()
+
+    response = _client(db).get("/research/partials/tickers?rating=Buy&date_range=all")
+
+    assert response.status_code == 200
+    assert 'id="research-tickers"' in response.text
+    assert "Analyzed stocks" in response.text
+    assert "AAPL" in response.text
+    assert "MSFT" not in response.text
+    assert "<!doctype html>" not in response.text
+
+
+def test_research_landing_shows_completed_analysis_before_outcome(db, completed_analysis):
+    response = _client(db).get("/")
+
+    assert response.status_code == 200
+    assert "AAPL" in response.text
+    assert "Pending" in response.text
+    assert "system-accuracy-chart" not in response.text
+
+
+def test_research_most_analyses_sort_uses_total_completed_reports(db):
+    today = date.today()
+    rows = [
+        Analysis(
+            ticker="AAPL",
+            trade_date=today - timedelta(days=idx),
+            run_at=datetime.combine(today - timedelta(days=idx), datetime.min.time()),
+            completed_at=datetime.combine(today - timedelta(days=idx), datetime.min.time()),
+            status="completed",
+            rating="Buy",
+        )
+        for idx in range(2)
+    ]
+    resolved = Analysis(
+        ticker="MSFT",
+        trade_date=today,
+        run_at=datetime.combine(today, datetime.min.time()),
+        completed_at=datetime.combine(today, datetime.min.time()),
+        status="completed",
+        rating="Buy",
+    )
+    db.add_all([*rows, resolved])
+    db.flush()
+    db.add(
+        Outcome(
+            analysis_id=resolved.id,
+            resolved_at=datetime.combine(today, datetime.min.time()),
+            raw_return=0.03,
+            alpha_return=0.01,
+            holding_days=5,
+            reflection="Resolved.",
+        )
+    )
+    db.commit()
+
+    response = _client(db).get("/?sort=most_analyses")
+
+    assert response.status_code == 200
+    assert response.text.index("/ticker/AAPL") < response.text.index("/ticker/MSFT")
+
+
+def test_ticker_summary_pending_when_no_outcomes(db, completed_analysis):
+    response = _client(db).get("/ticker/AAPL")
+
+    assert response.status_code == 200
+    assert "Results checked" in response.text
+    assert "Pending" in response.text
+    assert "No resolved outcomes yet" in response.text
 
 
 def test_research_landing_supports_rating_filter(db, completed_analysis):
@@ -128,6 +240,55 @@ def test_research_landing_supports_rating_filter(db, completed_analysis):
     assert "MSFT" not in response.text
 
 
+def test_research_landing_respects_date_range_filter(db):
+    today = date.today()
+    recent = Analysis(
+        ticker="AAPL",
+        trade_date=today - timedelta(days=10),
+        run_at=datetime.combine(today - timedelta(days=10), datetime.min.time()),
+        completed_at=datetime.combine(today - timedelta(days=10), datetime.min.time()),
+        status="completed",
+        rating="Buy",
+    )
+    old = Analysis(
+        ticker="MSFT",
+        trade_date=today - timedelta(days=120),
+        run_at=datetime.combine(today - timedelta(days=120), datetime.min.time()),
+        completed_at=datetime.combine(today - timedelta(days=120), datetime.min.time()),
+        status="completed",
+        rating="Buy",
+    )
+    db.add_all([recent, old])
+    db.flush()
+    db.add_all(
+        [
+            Outcome(
+                analysis_id=recent.id,
+                resolved_at=datetime.combine(today, datetime.min.time()),
+                raw_return=0.05,
+                alpha_return=0.02,
+                holding_days=5,
+                reflection="Recent.",
+            ),
+            Outcome(
+                analysis_id=old.id,
+                resolved_at=datetime.combine(today, datetime.min.time()),
+                raw_return=0.03,
+                alpha_return=0.01,
+                holding_days=5,
+                reflection="Old.",
+            ),
+        ]
+    )
+    db.commit()
+
+    response = _client(db).get("/?date_range=30")
+
+    assert response.status_code == 200
+    assert "AAPL" in response.text
+    assert "MSFT" not in response.text
+
+
 def test_ticker_and_analysis_routes(db, completed_analysis):
     db.add(
         Outcome(
@@ -157,6 +318,46 @@ def test_ticker_and_analysis_routes(db, completed_analysis):
     assert "Stock return" in report.text
     assert "Market report text." in report.text
     assert "Evidence" in report.text
+
+
+def test_analysis_report_uses_accessible_evidence_tabs(db, completed_analysis):
+    response = _client(db).get(f"/analysis/{completed_analysis.id}")
+
+    market_start = response.text.index('id="evidence-market-panel"')
+    news_start = response.text.index('id="evidence-news-panel"')
+    market_opening_tag = response.text[market_start : response.text.index(">", market_start)]
+    news_opening_tag = response.text[news_start : response.text.index(">", news_start)]
+
+    assert response.status_code == 200
+    assert 'role="tablist"' in response.text
+    assert 'id="evidence-market-tab"' in response.text
+    assert 'aria-selected="true"' in response.text
+    assert 'aria-controls="evidence-market-panel"' in response.text
+    assert 'role="tabpanel"' in response.text
+    assert "hidden" not in market_opening_tag
+    assert "hidden" in news_opening_tag
+
+
+def test_analysis_report_without_detail_renders_placeholders(db):
+    row = Analysis(
+        ticker="PLTR",
+        trade_date=date(2026, 4, 24),
+        run_at=datetime(2026, 4, 24, 9, 0),
+        completed_at=datetime(2026, 4, 24, 9, 5),
+        status="completed",
+        rating="Underweight",
+        executive_summary="Thin report.",
+        investment_thesis="Stored without evidence details.",
+    )
+    db.add(row)
+    db.commit()
+
+    response = _client(db).get(f"/analysis/{row.id}")
+
+    assert response.status_code == 200
+    assert "PLTR report" in response.text
+    assert "Thin report." in response.text
+    assert "No evidence stored." in response.text
 
 
 def test_workspace_route_is_user_scoped(db, completed_analysis):
@@ -190,6 +391,9 @@ def test_workspace_route_is_user_scoped(db, completed_analysis):
 
     assert response.status_code == 200
     assert "Showing submissions for alice" in response.text
+    assert "Queue Status" in response.text
+    assert "alice ▾" not in response.text
+    assert '<span class="user-pill">alice</span>' in response.text
     assert 'hx-trigger="every 5s"' not in response.text
     assert "AAPL" in response.text
     assert "MSFT" not in response.text

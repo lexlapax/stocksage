@@ -39,17 +39,17 @@ Top bar, always visible. No persistent left sidebar — this is a research tool,
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│ StockSage        Research   My Workspace           [Alice ▾]  [+ Analyze] │
+│ StockSage        Research   My Workspace           [Alice]    [+ Analyze] │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 - **Research** — system view, the landing screen
 - **My Workspace** — user-scoped submissions and status
-- **[Alice ▾]** — user switcher (no auth yet; simple dropdown)
+- **[Alice]** — static local user label; switching is handled through `Run as` and query params
 - **[+ Analyze]** — always-visible primary action; opens the New Analysis form
 
-Queue status is not a primary nav item. Running work is surfaced as a live indicator inside
-My Workspace, not its own top-level screen.
+Queue status is not a primary nav item. My Workspace includes a low-profile Queue Status link,
+and running work is surfaced as a live indicator inside the workspace screen.
 
 ---
 
@@ -61,7 +61,7 @@ been right about and which it has not.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ StockSage        Research   My Workspace           [Alice ▾]  [+ Analyze]    │
+│ StockSage        Research   My Workspace           [Alice]    [+ Analyze]    │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │ Research                                                                     │
@@ -79,16 +79,16 @@ been right about and which it has not.
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ Analyzed stocks                    Sort: [Best alpha ▾]                      │
-│ Filter: [Rating ▾]  [Min results ▾]  [Date range ▾]                         │
+│ Filter: [Rating ▾]  [Min reports ▾]  [Date range ▾]                         │
 │                                                                              │
-│ ┌──────┬──────────────┬────────────┬───────┬──────────┬───────────┬───────┐ │
-│ │Ticker│ Last rating  │ Analyzed   │ Calls │ Hit rate │ Avg alpha │ Trend │ │
-│ ├──────┼──────────────┼────────────┼───────┼──────────┼───────────┼───────┤ │
-│ │GOOGL │ Overweight   │ May 8      │ 8     │ 75%      │ +3.2%     │ ▁▃▅▇▆ │ │
-│ │AAPL  │ Overweight   │ May 1      │ 12    │ 70%      │ +1.8%     │ ▃▄▅▄▆ │ │
-│ │MSFT  │ Hold         │ Apr 30     │ 6     │ 50%      │ +0.3%     │ ▄▃▃▄▃ │ │
-│ │NVDA  │ Underweight  │ Apr 24     │ 5     │ 40%      │ -1.2%     │ ▅▄▃▂▁ │ │
-│ └──────┴──────────────┴────────────┴───────┴──────────┴───────────┴───────┘ │
+│ ┌──────┬────────────┬──────────┬────────┬─────────┬──────────┬───────────┐ │
+│ │Ticker│ Last rating│ Analyzed │ Reports│ Checked │ Hit rate │ Avg alpha │ │
+│ ├──────┼────────────┼──────────┼────────┼─────────┼──────────┼───────────┤ │
+│ │GOOGL │ Overweight │ May 8    │ 8      │ 8       │ 75%      │ +3.2%     │ │
+│ │AAPL  │ Overweight │ May 1    │ 12     │ 10      │ 70%      │ +1.8%     │ │
+│ │MSFT  │ Hold       │ Apr 30   │ 6      │ 6       │ 50%      │ +0.3%     │ │
+│ │PLTR  │ Underweight│ Apr 24   │ 1      │ 0       │ Pending  │ Pending   │ │
+│ └──────┴────────────┴──────────┴────────┴─────────┴──────────┴───────────┘ │
 │   (click any row → Ticker Intelligence page)                                 │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -103,15 +103,18 @@ been right about and which it has not.
 
 **Filter options:**
 - Rating: Buy / Overweight / Hold / Underweight / Sell / Any
-- Minimum results: 1 / 3 / 5 / 10 (exclude tickers with too little data)
+- Minimum reports: 1 / 3 / 5 / 10 (exclude tickers with too few completed analyses)
 - Date range: last 30 / 90 / 180 days / all time
+
+Metric tiles and the accuracy chart stay global system context. These filters update only the
+Analyzed stocks table, including through the M07 HTMX partial.
 
 **Trend column:** inline sparkline showing the last 6 alpha-aware outcomes for that ticker,
 oldest → newest. Tall marks are correct calls; short marks are missed calls.
 
-**Empty state:** when the DB has no resolved outcomes yet, show a calm message:
-"No resolved analyses yet. Results appear after StockSage checks outcomes ~5 trading days after
-each analysis." Do not show an empty table.
+**Empty state:** when the DB has no completed analyses yet, show a calm message:
+"No completed analyses yet. Results appear after StockSage completes an analysis." Do not show an
+empty table.
 
 ---
 
@@ -122,7 +125,7 @@ because they want to understand the track record and read the research.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ StockSage        Research   My Workspace           [Alice ▾]  [+ Analyze]    │
+│ StockSage        Research   My Workspace           [Alice]    [+ Analyze]    │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │ ← Research                                          [+ Analyze AAPL]         │
@@ -175,7 +178,7 @@ exposing agent internals.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ StockSage        Research   My Workspace           [Alice ▾]  [+ Analyze]    │
+│ StockSage        Research   My Workspace           [Alice]    [+ Analyze]    │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │ ← AAPL                                                                       │
@@ -220,11 +223,13 @@ data is not shown here — users click through to the report or the Research vie
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ StockSage        Research   My Workspace           [Alice ▾]  [+ Analyze]    │
+│ StockSage        Research   My Workspace           [Alice]    [+ Analyze]    │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │ My Workspace                                                                 │
 │ Showing submissions for Alice                                                │
+│                                                                              │
+│ Queue Status →                                                               │
 │                                                                              │
 │ ● 2 analyses running  (auto-refreshes)                                       │
 │                                                                              │
@@ -301,12 +306,11 @@ Purpose: one path to submit work. Appears as a modal over whatever screen the us
 
 ## Screen 6: Queue Status (Admin / Power User)
 
-Not in primary navigation. Accessible via a "View queue →" link from the running indicator in
-My Workspace, or from a Settings page.
+Not in primary navigation. Accessible via the "Queue Status →" link from My Workspace.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ StockSage        Research   My Workspace           [Alice ▾]  [+ Analyze]    │
+│ StockSage        Research   My Workspace           [Alice]    [+ Analyze]    │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │ Queue status                             Auto-refreshing · Last: 12:04:32    │

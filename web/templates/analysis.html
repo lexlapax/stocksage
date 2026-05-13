@@ -39,14 +39,31 @@
     <h2>Evidence</h2>
     <p>Open the research evidence that matters most.</p>
   </div>
-  <nav class="evidence-tabs" aria-label="Evidence sections">
+  <div class="evidence-tabs" role="tablist" aria-label="Evidence sections">
     {% for name, text in view.evidence.items() %}
-    <a href="#evidence-{{ name }}">{{ name|title }}</a>
+    <button
+      id="evidence-{{ name }}-tab"
+      class="evidence-tab"
+      type="button"
+      role="tab"
+      aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+      aria-controls="evidence-{{ name }}-panel"
+      tabindex="{% if loop.first %}0{% else %}-1{% endif %}"
+      data-tab-target="evidence-{{ name }}-panel"
+    >
+      {{ name|title }}
+    </button>
     {% endfor %}
-  </nav>
+  </div>
   <div class="evidence-panels">
     {% for name, text in view.evidence.items() %}
-    <article id="evidence-{{ name }}" class="evidence-panel">
+    <article
+      id="evidence-{{ name }}-panel"
+      class="evidence-panel"
+      role="tabpanel"
+      aria-labelledby="evidence-{{ name }}-tab"
+      {% if not loop.first %}hidden{% endif %}
+    >
       <h3>{{ name|title }}</h3>
       <p>{{ text or "No evidence stored." }}</p>
     </article>
@@ -55,4 +72,45 @@
 </section>
 
 <p class="disclaimer">StockSage is a research aid, not financial advice.</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll("[role='tablist']").forEach((tablist) => {
+    const tabs = Array.from(tablist.querySelectorAll("[role='tab']"));
+    const activate = (tab) => {
+      tabs.forEach((item) => {
+        const panel = document.getElementById(item.dataset.tabTarget);
+        const selected = item === tab;
+        item.setAttribute("aria-selected", selected ? "true" : "false");
+        item.tabIndex = selected ? 0 : -1;
+        if (panel) {
+          panel.hidden = !selected;
+        }
+      });
+      tab.focus();
+    };
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => activate(tab));
+      tab.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+          return;
+        }
+        event.preventDefault();
+        let nextIndex = index;
+        if (event.key === "ArrowLeft") {
+          nextIndex = (index - 1 + tabs.length) % tabs.length;
+        } else if (event.key === "ArrowRight") {
+          nextIndex = (index + 1) % tabs.length;
+        } else if (event.key === "Home") {
+          nextIndex = 0;
+        } else if (event.key === "End") {
+          nextIndex = tabs.length - 1;
+        }
+        activate(tabs[nextIndex]);
+      });
+    });
+  });
+</script>
 {% endblock %}

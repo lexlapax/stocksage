@@ -4,13 +4,9 @@ All notable changes to StockSage are tracked here.
 
 ## Unreleased
 
-### Changed
+No unreleased changes.
 
-- Added the M07 hardening and polish gap-analysis milestone, documenting post-`0.0.1` corrections
-  for Research completeness, evidence tabs, HTMX filtering, queue navigation, version metadata,
-  and documentation consistency.
-
-## [0.0.1] - 2026-05-13
+## [0.0.1] - 2026-05-12
 
 First local release. This release accepts Milestones 01-06: persistent CLI analysis, outcome
 tracking, alpha-aware trends, TradingAgents memory sync, resumable queue/worker processing,
@@ -48,6 +44,8 @@ multi-user request attribution, and the local FastAPI + Jinja2/HTMX web UI with 
 - Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, M05 user identity/request history, and M06 web UI/charts.
 - M06 UI wireframe and reusable building-block design spec for review before implementation.
 - Focused docs for local setup/CLI usage and development workflow.
+- M07 hardening and polish for Research completeness, evidence tabs, HTMX filtering, queue
+  navigation, version metadata, and documentation consistency.
 
 ### Changed
 
@@ -62,8 +60,18 @@ multi-user request attribution, and the local FastAPI + Jinja2/HTMX web UI with 
 - Milestone docs now mark M01 and M02 accepted after live validation and move raw-vs-alpha accuracy plus memory sync into M03.
 - `README.md` is now a concise project front door, with operational details moved to `docs/getting-started.md` and `docs/development.md`.
 - Roadmap now inserts M05 user identity and shared-analysis request history before moving web UI/charts to M06.
-- Active roadmap now marks M01-M06 accepted through the local web UI/charts milestone.
+- Active roadmap now marks M01-M07 accepted through the hardening and polish milestone.
 - FastAPI, Uvicorn, Jinja2, and form parsing dependencies are now first-class project dependencies for the web UI milestone.
+- Research now includes completed analyses before outcomes are resolved, while unresolved
+  hit-rate/alpha values render as pending and are excluded from metric calculations.
+- Ticker Intelligence summary metrics now render unresolved hit-rate and alpha values as pending
+  until at least one outcome is checked.
+- Analysis Report evidence sections now behave as accessible one-panel-at-a-time tabs.
+- Research sort/filter controls now support HTMX table partial updates with the full-page GET
+  fallback preserved; top summary metrics and charts remain global system context.
+- My Workspace now always exposes Queue Status, and the static user label no longer shows a
+  dropdown caret.
+- FastAPI OpenAPI metadata now reads the package version from installed package metadata.
 
 ### Known Gaps
 

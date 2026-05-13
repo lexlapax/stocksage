@@ -9,9 +9,7 @@
     <h1>My Workspace</h1>
     <p class="lede">Showing submissions for {{ view.user.username|e }}.</p>
   </div>
-  {% if view.has_active_work %}
-  <a class="status-link" href="/queue">View running work →</a>
-  {% endif %}
+  <a class="status-link" href="/queue">Queue Status →</a>
 </section>
 
 {% if view.has_active_work %}

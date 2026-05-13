@@ -26,9 +26,16 @@ def research_landing(
     min_results: int = 1,
     date_range: str = "all",
 ) -> dict:
-    rows = _filtered_resolved_rows(db, rating=rating, date_range=date_range)
-    ticker_rows = _research_ticker_rows(rows)
-    ticker_rows = [item for item in ticker_rows if item["resolved_count"] >= min_results]
+    summary_rows = _filtered_completed_rows(db, rating=None, date_range="all")
+    summary_ticker_rows = _research_ticker_rows(summary_rows)
+    resolved_summary_ticker_rows = [
+        item for item in summary_ticker_rows if item["resolved_count"] > 0
+    ]
+    resolved_summary_rows = [row for row in summary_rows if row.outcome is not None]
+
+    table_rows = _filtered_completed_rows(db, rating=rating, date_range=date_range)
+    ticker_rows = _research_ticker_rows(table_rows)
+    ticker_rows = [item for item in ticker_rows if item["total_analyses"] >= min_results]
     ticker_rows = _sort_research_rows(ticker_rows, sort)
     running = (
         db.query(AnalysisQueue).filter(AnalysisQueue.status.in_(("queued", "running"))).count()
@@ -36,14 +43,17 @@ def research_landing(
     return {
         "page": "Research",
         "summary": {
-            "stocks_analyzed": len(ticker_rows),
-            "avg_hit_rate": _average([item["hit_rate"] for item in ticker_rows]),
-            "avg_alpha_return": _average([item["avg_alpha_return"] for item in ticker_rows]),
+            "stocks_analyzed": len(summary_ticker_rows),
+            "resolved_stocks": len(resolved_summary_ticker_rows),
+            "avg_hit_rate": _average([item["hit_rate"] for item in resolved_summary_ticker_rows]),
+            "avg_alpha_return": _average(
+                [item["avg_alpha_return"] for item in resolved_summary_ticker_rows]
+            ),
             "running": running,
         },
         "sort": sort,
         "filters": {"rating": rating, "min_results": min_results, "date_range": date_range},
-        "accuracy_chart": _rolling_accuracy_chart(rows),
+        "accuracy_chart": _rolling_accuracy_chart(resolved_summary_rows),
         "tickers": ticker_rows,
     }
 
@@ -217,26 +227,13 @@ def queue_status(db: Session, *, status: str | None = None, limit: int = 100) ->
     }
 
 
-def _sort_ticker_stats(stats: list[TickerStats], sort: str) -> list[TickerStats]:
-    sorters = {
-        "best_alpha": lambda item: (item.avg_alpha_return, item.alpha_directional_accuracy),
-        "hit_rate": lambda item: (item.alpha_directional_accuracy, item.resolved_count),
-        "most_analyses": lambda item: (item.resolved_count, item.total_analyses),
-        "recent": lambda item: (_latest_analysis_date(item), item.ticker),
-        "ticker": lambda item: item.ticker,
-    }
-    key = sorters.get(sort, sorters["best_alpha"])
-    reverse = sort != "ticker"
-    return sorted(stats, key=key, reverse=reverse)
-
-
-def _filtered_resolved_rows(
+def _filtered_completed_rows(
     db: Session,
     *,
     rating: str | None,
     date_range: str,
 ) -> list[Analysis]:
-    query = db.query(Analysis).join(Outcome).filter(Analysis.status == "completed")
+    query = db.query(Analysis).filter(Analysis.status == "completed")
     if rating:
         query = query.filter(Analysis.rating == rating)
     start = _date_range_start(date_range)
@@ -253,17 +250,20 @@ def _research_ticker_rows(rows: list[Analysis]) -> list[dict]:
     ticker_rows = []
     for ticker, ticker_analyses in by_ticker.items():
         latest = max(ticker_analyses, key=lambda item: (item.trade_date, item.id))
+        resolved = [row for row in ticker_analyses if row.outcome is not None]
         flags = [
             is_correct_alpha_direction(row.rating or "", row.outcome.alpha_return)
-            for row in ticker_analyses
+            for row in resolved
         ]
         ticker_rows.append(
             {
                 "ticker": ticker,
                 "total_analyses": len(ticker_analyses),
-                "resolved_count": len(ticker_analyses),
-                "hit_rate": _average_bools(flags),
-                "avg_alpha_return": _average([row.outcome.alpha_return for row in ticker_analyses]),
+                "resolved_count": len(resolved),
+                "hit_rate": _average_bools(flags) if resolved else None,
+                "avg_alpha_return": (
+                    _average([row.outcome.alpha_return for row in resolved]) if resolved else None
+                ),
                 "last_rating": latest.rating,
                 "last_analyzed": latest.trade_date.isoformat(),
                 "trend": [
@@ -274,7 +274,7 @@ def _research_ticker_rows(rows: list[Analysis]) -> list[dict]:
                             row.rating or "", row.outcome.alpha_return
                         ),
                     }
-                    for row in ticker_analyses[-6:]
+                    for row in resolved[-6:]
                 ],
             }
         )
@@ -283,9 +283,12 @@ def _research_ticker_rows(rows: list[Analysis]) -> list[dict]:
 
 def _sort_research_rows(rows: list[dict], sort: str) -> list[dict]:
     sorters = {
-        "best_alpha": lambda item: (item["avg_alpha_return"], item["hit_rate"]),
-        "hit_rate": lambda item: (item["hit_rate"], item["resolved_count"]),
-        "most_analyses": lambda item: (item["resolved_count"], item["total_analyses"]),
+        "best_alpha": lambda item: (
+            _sortable_metric(item["avg_alpha_return"]),
+            _sortable_metric(item["hit_rate"]),
+        ),
+        "hit_rate": lambda item: (_sortable_metric(item["hit_rate"]), item["resolved_count"]),
+        "most_analyses": lambda item: (item["total_analyses"], item["resolved_count"]),
         "recent": lambda item: (item["last_analyzed"], item["ticker"]),
         "ticker": lambda item: item["ticker"],
     }
@@ -459,12 +462,6 @@ def _outcome_label(row: Analysis) -> str:
     return "Missed call"
 
 
-def _latest_analysis_date(item: TickerStats) -> date:
-    if item.accuracy_trend:
-        return item.accuracy_trend[-1][0]
-    return date.min
-
-
 def _best_rating(item: TickerStats) -> str | None:
     if not item.rating_counts:
         return None
@@ -472,7 +469,7 @@ def _best_rating(item: TickerStats) -> str | None:
 
 
 def _average(values) -> float:
-    values = list(values)
+    values = [value for value in values if value is not None]
     return mean(values) if values else 0.0
 
 
@@ -485,6 +482,10 @@ def _date_range_start(value: str) -> date | None:
     if days is None:
         return None
     return date.today() - timedelta(days=days)
+
+
+def _sortable_metric(value: float | None) -> float:
+    return value if value is not None else float("-inf")
 
 
 def _analysis_for(db: Session, ticker: str, trade_date: date) -> Analysis | None:

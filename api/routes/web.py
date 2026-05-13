@@ -34,18 +34,25 @@ def research_landing(
     min_results: int = Query(1, ge=1),
     date_range: str = Query("all"),
 ):
-    if sort not in SORT_OPTIONS:
-        raise HTTPException(status_code=400, detail=f"Unsupported sort option: {sort}")
-    if date_range not in DATE_RANGE_OPTIONS:
-        raise HTTPException(status_code=400, detail=f"Unsupported date range: {date_range}")
-    view = services.research_landing(
-        db,
-        sort=sort,
-        rating=rating,
-        min_results=min_results,
-        date_range=date_range,
-    )
+    view = _research_view(db, sort, rating, min_results, date_range)
     return _template_response(request, "research.html", view, active_nav="research")
+
+
+@router.get("/research/partials/tickers", response_class=HTMLResponse, tags=["research"])
+def research_tickers_partial(
+    request: Request,
+    db: DbSession,
+    sort: str = Query("best_alpha"),
+    rating: str | None = Query(None),
+    min_results: int = Query(1, ge=1),
+    date_range: str = Query("all"),
+):
+    view = _research_view(db, sort, rating, min_results, date_range)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/research_tickers.html",
+        context={"view": view},
+    )
 
 
 @router.get("/ticker/{ticker}", response_class=HTMLResponse, tags=["research"])
@@ -292,3 +299,23 @@ def _current_user_from_request(request: Request) -> dict:
 
 def _is_htmx(request: Request) -> bool:
     return request.headers.get("HX-Request", "").lower() == "true"
+
+
+def _research_view(
+    db: DbSession,
+    sort: str,
+    rating: str | None,
+    min_results: int,
+    date_range: str,
+) -> dict:
+    if sort not in SORT_OPTIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported sort option: {sort}")
+    if date_range not in DATE_RANGE_OPTIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported date range: {date_range}")
+    return services.research_landing(
+        db,
+        sort=sort,
+        rating=rating,
+        min_results=min_results,
+        date_range=date_range,
+    )

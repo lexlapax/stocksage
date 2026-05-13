@@ -24,11 +24,19 @@
   </article>
   <article class="metric">
     <span>Hit rate</span>
+    {% if view.summary.resolved_count %}
     <strong>{{ "%.0f%%"|format(view.summary.hit_rate * 100) }}</strong>
+    {% else %}
+    <strong>Pending</strong>
+    {% endif %}
   </article>
   <article class="metric">
     <span>Avg alpha</span>
+    {% if view.summary.resolved_count %}
     <strong>{{ "%+.1f%%"|format(view.summary.avg_alpha_return * 100) }}</strong>
+    {% else %}
+    <strong>Pending</strong>
+    {% endif %}
   </article>
 </section>
 {% endif %}
