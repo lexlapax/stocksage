@@ -175,33 +175,128 @@ Real-time agent progress via `Phoenix.PubSub` — Oban job events push through t
 
 In an umbrella where `allbert_assist` (core) and `stocksage` are separate OTP applications, the IntentAgent in `allbert_assist` should be able to route to StockSage actions. Currently `AllbertAssist.Actions.Registry` only knows about actions defined in `allbert_assist`. There is no contract for apps to register themselves.
 
-### 5.2 The Solution: App Behaviour + Registry Extension
+### 5.2 The Solution: Full AllbertAssist.App Contract
 
-Each workspace app implements a behaviour:
+Modeled on the `Oban.Plugin` pattern: `validate/1` catches misconfiguration at startup time; `child_spec/1` injects workspace config so apps do not hardcode global module references. The contract spans five layers:
 
 ```elixir
 defmodule AllbertAssist.App do
+  @moduledoc "Contract for all Allbert workspace apps. Modeled on Oban.Plugin."
+
+  # --- Layer 1: Identity + OTP ---
   @callback app_id() :: atom()
   @callback display_name() :: String.t()
-  @callback actions() :: [module()]           # Jido action modules to register
-  @callback skills() :: [String.t()]          # priv/skills/ directories to add to skill registry
-  @callback signal_subscriptions() :: [String.t()]  # signal topics this app listens to
-  @callback supervision_children() :: [Supervisor.child_spec()]
+  @callback version() :: String.t()
+  @callback validate(keyword()) :: :ok | {:error, String.t()}
+  @callback child_spec(keyword()) :: Supervisor.child_spec()
+
+  # --- Layer 2: Agents, Actions, Signals ---
+  @callback actions() :: [module()]              # Jido.Action modules to register globally
+  @callback agents() :: [module()]               # Jido.Agent | Jido.AI.Agent modules
+  @callback signal_emits() :: [String.t()]       # topics this app may publish (declarative)
+  @callback signal_subscribes() :: [String.t()]  # topics this app consumes
+
+  # --- Layer 3: Skills (agentskills.io) ---
+  @callback skill_paths() :: [Path.t()]          # priv/skills/ dirs to add to Skills.Registry
+
+  # --- Layer 4: UI Surface ---
+  @callback surfaces() :: [AllbertAssist.App.Surface.t()]     # nav surfaces (title, icon, path)
+  @callback live_views() :: [{String.t(), module()}]          # {path_pattern, LiveView module}
+  @callback router_scope() :: {String.t(), module(), keyword()} # {scope, Router, opts}
+  # canvas_catalog/0 added after allbert core v0.17 ships (M-Canvas milestone)
+  # @callback canvas_catalog() :: [AllbertAssist.Surface.catalog_entry()]
+
+  # --- Layer 5: Data + Settings ---
+  @callback settings_schema() :: keyword()       # NimbleOptions-style settings declaration
+  @callback memory_namespaces() :: [atom()]      # allbert memory categories this app writes to
+
+  @optional_callbacks [
+    agents: 0,
+    signal_subscribes: 0,
+    live_views: 0,
+    router_scope: 0,
+    settings_schema: 0,
+    memory_namespaces: 0
+  ]
 end
 ```
 
-Apps register at startup via the Allbert core:
+**Layer notes:**
+
+- **Layer 1 (Identity + OTP)**: `validate/1` is called by `AllbertAssist.App.Registry.register/2` before any children are started — misconfiguration fails loudly at startup rather than at runtime. `child_spec/1` is passed workspace config opts (e.g., `[repo: AllbertAssist.Repo, bus: AllbertAssist.SignalBus]`) so apps never hardcode global module names.
+
+- **Layer 2 (Agents/Actions/Signals)**: `actions/0` returns Jido.Action modules that are registered in `AllbertAssist.Actions.Registry` tagged with `app_id` for scoped routing. `signal_emits/0` is declarative — used for documentation and permission-gate checks, not runtime enforcement. `signal_subscribes/0` wires up bus subscriptions during registration.
+
+- **Layer 3 (Skills)**: `skill_paths/0` returns filesystem paths added to `AllbertAssist.Skills.Registry` immediately on registration. Skills become discoverable via `mix allbert.skills list` without any restart.
+
+- **Layer 4 (UI Surface)**: `surfaces/0` returns structs the workspace shell uses to build navigation. `live_views/0` are mounted by the Allbert router at startup (statically configured, not dynamically discovered at runtime). `router_scope/0` provides a sub-router for apps that need their own pipeline (API routes, plugs, etc.).
+
+- **Layer 5 (Data + Settings)**: `settings_schema/0` declares required config keys validated at startup. `memory_namespaces/0` declares which allbert memory categories this app writes to — used for permission gating.
+
+**Concrete StockSage.App implementation:**
 
 ```elixir
-# In StockSage.Application.start/2
-AllbertAssist.App.Registry.register(StockSage)
+defmodule StockSage.App do
+  @behaviour AllbertAssist.App
 
-# Which triggers:
-AllbertAssist.Actions.Registry.register_many(StockSage.app_actions())
-AllbertAssist.Skills.Registry.add_path(StockSage.priv_skills_dir())
+  def app_id(),       do: :stocksage
+  def display_name(), do: "StockSage"
+  def version(),      do: "0.1.0"
+
+  def validate(opts) do
+    if Keyword.has_key?(opts, :repo), do: :ok,
+    else: {:error, "StockSage requires :repo in opts"}
+  end
+
+  def child_spec(opts) do
+    %{id: __MODULE__, start: {StockSage.Application, :start_link, [opts]}, type: :supervisor}
+  end
+
+  def actions(), do: [
+    StockSage.Actions.RunAnalysis,
+    StockSage.Actions.QueueAnalysis,
+    StockSage.Actions.GetTrends
+  ]
+
+  def agents(), do: [
+    StockSage.Agents.OrchestratorAgent,
+    StockSage.Agents.MarketAnalystAgent
+    # ... all 8 analyst/researcher/trader agents
+  ]
+
+  def signal_emits(), do: [
+    "stocksage.analysis.started",
+    "stocksage.analysis.completed",
+    "stocksage.analysis.failed",
+    "stocksage.queue.updated"
+  ]
+
+  def signal_subscribes(), do: ["allbert.user.context_changed"]
+
+  def skill_paths(), do: [Application.app_dir(:stocksage, "priv/skills")]
+
+  def surfaces(), do: [
+    %AllbertAssist.App.Surface{
+      id: :workspace, title: "StockSage",
+      icon: "chart-line", path: "/stocksage",
+      live_view: StockSageWeb.WorkspaceLive
+    }
+  ]
+
+  def live_views(), do: [
+    {"/stocksage",              StockSageWeb.WorkspaceLive},
+    {"/stocksage/analysis/:id", StockSageWeb.AnalysisLive},
+    {"/stocksage/queue",        StockSageWeb.QueueLive},
+    {"/stocksage/trends",       StockSageWeb.TrendsLive}
+  ]
+
+  def router_scope(), do: {"/stocksage", StockSageWeb.Router, []}
+
+  def memory_namespaces(), do: [:stocksage_analyses, :stocksage_lessons]
+end
 ```
 
-The `AllbertAssist.Actions.Registry` already exists — it just needs an `app_id` tag on each entry so the intent agent can scope routing (e.g., "this is a stocksage action, only route here if stocksage is the active context").
+The `AllbertAssist.Actions.Registry` already exists — it gains an `app_id` tag per entry so the intent agent can scope routing (actions registered by StockSage are only prioritized when `active_app: :stocksage` is set in the session scratchpad).
 
 ### 5.3 Cross-App Signal Routing
 
@@ -287,6 +382,88 @@ allbert/                          ← Umbrella root (allbert-assist-exs renamed/
 └── .env.example
 ```
 
+### 5.6 AllbertAssist.App.SurfaceProvider
+
+Apps that expose interactive surfaces (not just nav links) implement a secondary behaviour:
+
+```elixir
+defmodule AllbertAssist.App.SurfaceProvider do
+  @moduledoc """
+  Secondary contract for apps with interactive surface components.
+  A2UI-inspired: surfaces have lifecycle (init → render → action).
+  ADR 0001 compliance: handle_action/2 MUST return a Jido signal.
+  """
+
+  @type surface_id    :: atom()
+  @type surface_state :: map()
+
+  @callback init(surface_id()) ::
+              {:ok, surface_state()} | {:error, term()}
+
+  @callback render(surface_id(), surface_state()) ::
+              AllbertAssist.Surface.node()
+
+  @callback handle_action(surface_id(), action :: map()) ::
+              {:signal, Jido.Signal.t(), surface_state()}
+              | {:noreply, surface_state()}
+end
+```
+
+`render/2` returns an `AllbertAssist.Surface.node()` (see §6.6). LiveView renders it by default. `AllbertAssist.Surface.Encoder.to_a2ui/1` converts it to A2UI JSON for mobile/desktop clients.
+
+`handle_action/2` receives user-initiated actions (button clicks, form submits expressed as maps) and **must** return a Jido signal per ADR 0001 — all state transitions go through the signal bus, not direct GenServer state mutation.
+
+### 5.7 App Registry: Elixir Registry + DynamicSupervisor
+
+```elixir
+defmodule AllbertAssist.App.Registry do
+  @moduledoc "Runtime discovery and lifecycle management for registered Allbert apps."
+
+  def register(app_module, opts \\ []) do
+    with :ok <- app_module.validate(opts),
+         {:ok, _pid} <- DynamicSupervisor.start_child(
+           AllbertAssist.App.Supervisor,
+           app_module.child_spec(workspace_opts(opts))
+         ) do
+      Enum.each(app_module.actions(),
+        &AllbertAssist.Actions.Registry.register(&1, app_id: app_module.app_id()))
+      Enum.each(app_module.skill_paths(),
+        &AllbertAssist.Skills.Registry.add_path/1)
+      subscribe_signals(app_module)
+      Registry.register(__MODULE__, app_module.app_id(), app_module)
+      {:ok, app_module.app_id()}
+    end
+  end
+
+  def lookup(app_id) do
+    case Registry.lookup(__MODULE__, app_id) do
+      [{_pid, module}] -> {:ok, module}
+      []               -> {:error, :not_found}
+    end
+  end
+
+  def registered_apps() do
+    Registry.select(__MODULE__, [{{:_, :_, :"$1"}, [], [:"$1"]}])
+  end
+
+  defp subscribe_signals(app_module) do
+    Enum.each(app_module.signal_subscribes(), fn topic ->
+      Jido.Signal.Bus.subscribe(AllbertAssist.SignalBus, topic, app_module)
+    end)
+  end
+
+  defp workspace_opts(opts) do
+    Keyword.merge([
+      repo: AllbertAssist.Repo,
+      bus: AllbertAssist.SignalBus,
+      pubsub: AllbertAssist.PubSub
+    ], opts)
+  end
+end
+```
+
+Apps supervised by `DynamicSupervisor` restart on crash and re-establish their action/skill/signal registrations via their own `start_link/1`. The Elixir `Registry` provides `{:via, Registry, {AllbertAssist.App.Registry, :stocksage}}` process naming for intent-agent-to-app routing.
+
 ---
 
 ## 6. Generative UI: Live Canvas — Alignment with allbert v0.17
@@ -340,9 +517,99 @@ The agent response format gains `canvas_ops` after v0.17 defines the contract:
 
 **This is a post-D3 milestone** (§11, M-Canvas) and has no dependency on D1–D3 being complete first — it just needs v0.17 to ship.
 
-### 6.4 Technology Posture
+### 6.4 Three Protocols, One Stack
 
-Research found `ex_a2ui` (Google A2UI protocol, implemented in Elixir) and `vercel-labs/json-render` as alternatives. v0.17 already positions native LiveView as the substrate (server-authoritative diff-patch = built-in streaming protocol, no extra JS bundle). A2UI remains an option if Allbert later needs mobile/desktop clients. That decision belongs in the v0.17 plan, not here.
+There are three distinct concerns in a generative agent UI. Allbert addresses each:
+
+| Concern | External protocol | Allbert approach |
+|---------|------------------|-----------------|
+| **How events stream** (agent lifecycle, text chunks, tool calls) | AG-UI (CopilotKit) | `ag_ui_ex` v0.1.0 event structs; LiveView channels as transport |
+| **What to render** (component descriptions, data bindings) | A2UI (Google) | `AllbertAssist.Surface` DSL — A2UI-inspired, Allbert-native |
+| **How the browser updates** (DOM patching, reconnect, backpressure) | Phoenix LiveView | Unchanged — LiveView is the substrate; no extra JS runtime needed |
+
+AG-UI and A2UI are **complementary**: A2UI component payloads can be delivered inside AG-UI `custom` events. Allbert uses both concepts but binds them to native Elixir types rather than raw JSON interchange, so LiveView is the default consumer and A2UI JSON encoding is only produced for non-LiveView clients.
+
+### 6.5 AG-UI: Agent Event Streaming
+
+`ag_ui_ex` v0.1.0 (hex.pm, by 23min) defines ~17 event structs for the AG-UI protocol:
+
+```elixir
+# Key event types used in allbert
+%AGUIEx.RunStarted{thread_id: "...", run_id: "..."}
+%AGUIEx.TextMessageStart{message_id: "...", role: :assistant}
+%AGUIEx.TextMessageChunk{message_id: "...", delta: "AAPL is currently..."}
+%AGUIEx.TextMessageEnd{message_id: "..."}
+%AGUIEx.ToolCallStart{tool_call_id: "...", tool_name: "fetch_stock_data"}
+%AGUIEx.ToolCallEnd{tool_call_id: "...", result: %{...}}
+%AGUIEx.StateSnapshot{state: %{active_app: :stocksage, canvas_tiles: [...]}}
+%AGUIEx.Custom{name: "canvas_op", value: %{op: :upsert, component: "stock_chart", ...}}
+%AGUIEx.RunFinished{run_id: "...", final_state: %{decision: "Buy", ...}}
+```
+
+In Allbert these events are published on the signal bus (`Jido.Signal` wrapping AG-UI event structs) and consumed by LiveViews via PubSub `handle_info/2`. The SSE/WebSocket transport that AG-UI specifies for external HTTP clients is not used internally — LiveView's own channel is the transport. If Allbert later exposes an HTTP streaming endpoint for external agent runners, that endpoint emits AG-UI SSE using these same struct definitions.
+
+**StockSage flow:** OrchestratorAgent emits `RunStarted`, each analyst agent emits `TextMessageChunk` bursts as it reasons, `ToolCallStart`/`ToolCallEnd` wrap each data-fetch action, and `RunFinished` carries the final `%{decision: "Buy", confidence: 0.72}`. `AgentLive` receives these via PubSub and streams them into the conversation timeline using `LiveView.stream/3`.
+
+### 6.6 A2UI and AllbertAssist.Surface
+
+**A2UI** (Google's Agent-to-UI protocol, `ex_a2ui` hex.pm) defines five message types: `createSurface`, `updateComponents`, `updateDataModel`, `watchDataModel`, `deleteSurface`. It specifies 18 standard component types (text, image, button, list, chart, form, card, badge, etc.) plus a custom component catalog. Components declare JSON Pointer data bindings to a shared data model; actions flow back from UI to agent via `onAction` callbacks.
+
+**Security alignment:** A2UI's catalog-as-allowlist model aligns directly with Allbert's permission gate — only registered component types can be rendered. No arbitrary HTML or JavaScript can be injected by an LLM response.
+
+**AllbertAssist.Surface** is Allbert's native equivalent, defined as Elixir terms rather than JSON:
+
+```elixir
+defmodule AllbertAssist.Surface do
+  @moduledoc "Allbert-native component DSL, A2UI-inspired. 18 standard types + custom."
+
+  @type node ::
+      {:text,    attrs(), String.t()}
+    | {:heading, attrs(), String.t()}
+    | {:image,   attrs(), String.t()}              # URL
+    | {:button,  attrs(), String.t()}              # label; :action key in attrs
+    | {:list,    attrs(), [node()]}
+    | {:table,   attrs(), %{columns: list(), rows: list()}}
+    | {:chart,   attrs(), %{type: :line | :bar | :candle, data: list()}}
+    | {:form,    attrs(), [node()]}
+    | {:card,    attrs(), [node()]}
+    | {:badge,   attrs(), String.t()}
+    | {:custom,  atom(), map()}                    # registered component atom (catalog)
+
+  @type attrs          :: keyword()
+  @type catalog_entry  :: {atom(), module()}       # {component_atom, LiveComponent module}
+end
+```
+
+**Agent response with surface node (post-v0.17):**
+
+```elixir
+%{
+  text: "AAPL analysis complete — signal: Buy.",
+  surface: {:card, [id: "aapl-summary"], [
+    {:heading, [], "AAPL — Buy"},
+    {:chart, [type: :candle], %{ticker: "AAPL", range: "30d"}},
+    {:badge, [color: :green], "↑ 4.2% projected"},
+    {:button, [action: "view_full_analysis", analysis_id: "..."], "View full report"}
+  ]}
+}
+```
+
+**Rendering path:**
+
+```
+Agent produces AllbertAssist.Surface.node()
+  │
+  ├─► AllbertAssist.Surface.Renderer (LiveView, DEFAULT)
+  │       → component dispatch against pre-approved catalog
+  │       → DOM patch via LiveView channel (no extra JS)
+  │
+  └─► AllbertAssist.Surface.Encoder.to_a2ui/1  (OPTIONAL — mobile/Electron only)
+          → A2UI JSON → non-LiveView client
+```
+
+`to_a2ui/1` is never called in the Phoenix web UI path. It exists as a bridge for future non-browser clients.
+
+**agentskills.io hook:** A skill's SKILL.md frontmatter can declare a `canvas_component` key naming the surface component to render when the skill is activated. The intent agent uses this to trigger a surface update alongside the text response.
 
 ---
 
@@ -527,8 +794,8 @@ The existing allbert-assist-exs roadmap already occupies v0.11–v0.17 for allbe
 
 ```
 allbert core (existing plans):   v0.11 → v0.12 → v0.13 → v0.14 → v0.15 → v0.16 → v0.17(canvas)
-                                                                                        ↑
-stocksage track (this plan):     D1a → D1b → D2a → D2b → D2c → D3a → D3b ──────→ M-Canvas
+                                                                              ↑            ↑
+stocksage track (this plan):     D1a → D1b → D2a → D2b → D2c → M-AppContract → D3a → D3b → M-Canvas
 ```
 
 D1a/D1b touch allbert core files (add multi-user to `allbert_assist`). D2a–D3b add new umbrella apps. None of them alter files owned by v0.11–v0.17.
@@ -622,8 +889,30 @@ D1a/D1b touch allbert core files (add multi-user to `allbert_assist`). D2a–D3b
 
 ---
 
+### M-AppContract — Allbert App Contract and Surface DSL  
+**Allbert track: parallel to v0.15–v0.16** (depends on M-D2c proving the contract with StockSage; prerequisite for D3 LiveViews and allbert core v0.17 canvas)
+
+**Goal:** Define and implement the full `AllbertAssist.App` contract, the `AllbertAssist.Surface` DSL, and the tooling that lets any future app register with Allbert. StockSage is the first app to prove the contract. v0.17 builds the workspace shell consuming it.
+
+**Scope:**
+- `AllbertAssist.App` behaviour: full 5-layer spec (§5.2) — Identity/OTP, Agents/Actions/Signals, Skills, UI Surface, Data/Settings
+- `AllbertAssist.App.Registry`: Elixir Registry + DynamicSupervisor (§5.7)
+- `AllbertAssist.App.SurfaceProvider` behaviour: `init/1`, `render/2`, `handle_action/2` returning `{:signal, ...}` (§5.6)
+- `AllbertAssist.Surface` module: A2UI-inspired component DSL, 18 standard types + custom (§6.6)
+- `AllbertAssist.Surface.Encoder`: `to_a2ui/1` optional bridge (mobile/desktop only, not used by LiveView)
+- Agent event structs: `ag_ui_ex` v0.1.0 added as dependency; Allbert wrapper types defined (§6.5)
+- `mix allbert.validate_app MyApp` — checks all required callbacks present and `validate/1` passes
+- `StockSage.App` fully implements the contract (proves it works end-to-end)
+- ADR 0014: `docs/adr/0014-allbert-app-contract-and-surface-dsl.md` committed to allbert-assist-exs
+- Documentation guide: `docs/how-to-create-an-allbert-app.md` (all 5 layers, StockSage as worked example)
+- No generator (`mix allbert.gen.app`) — after contract is proven by M-D3b
+
+**Acceptance:** `mix allbert.validate_app StockSage.App` passes; `AllbertAssist.App.Registry.registered_apps()` returns `[:stocksage]` at runtime; ADR 0014 is committed.
+
+---
+
 ### M-D3a — StockSage LiveView Shell  
-**StockSage track: v0.4.0** (depends on M-D2c; plain LiveViews — no canvas yet)
+**StockSage track: v0.4.0** (depends on M-AppContract; plain LiveViews — no canvas yet)
 
 **Goal:** StockSage web surface inside the Allbert shell. Standard LiveViews with real-time PubSub; canvas integration is post-v0.17.
 
@@ -682,7 +971,71 @@ D1a/D1b touch allbert core files (add multi-user to `allbert_assist`). D2a–D3b
 
 ---
 
-## 12. Open Questions
+## 12. Plan Incorporation into allbert v0.11–v0.17
+
+### 12.1 Alignment Map
+
+This plan's milestones feed into the allbert-assist-exs roadmap at specific points. None of them alter files owned by v0.11–v0.16 plans:
+
+| This plan | allbert core | Integration |
+|-----------|-------------|-------------|
+| M-D1a (multi-user chat) | parallel to v0.11 | Additive to `allbert_assist`; no conflict with v0.11 (intent/resource work) |
+| M-D1b (ETS scratchpad) | parallel to v0.11–v0.12 | Additive; scratchpad gains `canvas_tiles` key when v0.17 ships |
+| M-D2a (StockSage umbrella) | can start immediately | New umbrella apps; allbert core unchanged |
+| M-D2b/M-D2c (Python bridge → native agents) | parallel to v0.12–v0.15 | No dependency on allbert core milestones |
+| **M-AppContract** | **parallel to v0.15–v0.16** | **New ADR 0014; prerequisite for v0.17 canvas** |
+| M-D3a/M-D3b (StockSage LiveViews) | after M-AppContract | Proves app contract before v0.17 consumes it |
+| M-Canvas | after v0.17 ships | v0.17 canvas substrate is the hard prerequisite |
+| M-Production | after v0.16 + M-D3b | AshAuthentication, libcluster, Fly.io |
+
+### 12.2 What Goes Into allbert-assist-exs
+
+**M-D1a and M-D1b** commit directly into `allbert-assist-exs` — new modules + migrations in the existing `allbert_assist` OTP app. These are in-repo changes, not a new repo.
+
+**M-D2a–M-D2c** add new umbrella apps (`stocksage`, `stocksage_web`) to the same repo. The umbrella root `mix.exs` gains two new entries; `allbert_assist` itself is unchanged beyond the `App.Registry` stub added in M-D2a.
+
+**M-AppContract** contributes to `allbert_assist`:
+1. `AllbertAssist.App` behaviour module
+2. `AllbertAssist.App.Registry` (Elixir Registry + DynamicSupervisor)
+3. `AllbertAssist.App.SurfaceProvider` behaviour
+4. `AllbertAssist.Surface` DSL module
+5. `AllbertAssist.Surface.Encoder` (A2UI optional bridge)
+6. **ADR 0014** — `docs/adr/0014-allbert-app-contract-and-surface-dsl.md`
+7. `docs/how-to-create-an-allbert-app.md` developer guide
+8. `mix allbert.validate_app` mix task
+
+### 12.3 What v0.17 Needs from This Plan
+
+The allbert-assist-exs `v0.17-plan.md` ("Agentic Workspace Surface") explicitly defers A2UI compatibility and says "Allbert-native contracts first." **M-AppContract delivers those contracts.**
+
+Suggested addition to `v0.17-plan.md`:
+
+> **Dependency on M-AppContract:** v0.17 builds the workspace shell using `AllbertAssist.App.Registry.registered_apps/0` for nav and `AllbertAssist.Surface` for the component DSL. M-AppContract must land before canvas LiveView work starts. The surface envelope format described in v0.17 (`surface_id`, `purpose`, `component_catalog`, `data_bindings`, `allowed_events`) maps directly to `AllbertAssist.Surface` node types and the `AllbertAssist.App.SurfaceProvider` behaviour defined in M-AppContract.
+
+### 12.4 Post-D3 Roadmap Addition (allbert v0.18)
+
+Once StockSage proves the contract end-to-end (post-M-D3b), propose to the allbert roadmap:
+
+**v0.18 — Allbert App Generator**
+
+- `mix allbert.gen.app MyApp` — scaffolds all 5 contract layers as a working stub
+- Generated output: `MyApp.App` module, sample Jido action, sample SKILL.md, sample surface, Ash domain stub, `mix allbert.validate_app MyApp` passes on first run
+- Optional: `mix allbert.publish_skills` — publishes app's SKILL.md files to agentskills.io public registry
+
+This milestone is explicitly **not** in scope until the contract is proven. Generator before proof = premature abstraction.
+
+### 12.5 No Breaking Changes to v0.11–v0.16
+
+All milestones in this plan are **additive**:
+
+- M-D1a/M-D1b: new modules + migrations; existing agents, settings, security, and skills are untouched
+- M-AppContract: new behaviour modules; `allbert_assist` does not implement `AllbertAssist.App` (it is the host, not an app); existing code has zero new imports
+- M-D3a: mounts StockSage routes in `allbert_assist_web` via the registry — one line in the router, existing routes unchanged
+- v0.11–v0.16 can be developed and released in any order relative to this plan's milestones; the only hard sequencing is M-AppContract → M-D3a → v0.17 canvas
+
+---
+
+## 13. Open Questions
 
 | # | Question | Current position |
 |---|----------|-----------------|
@@ -697,7 +1050,7 @@ D1a/D1b touch allbert core files (add multi-user to `allbert_assist`). D2a–D3b
 
 ---
 
-## 13. Migration Path from Python StockSage
+## 14. Migration Path from Python StockSage
 
 The Python `0.0.2` codebase is frozen at `stocksage.db`. Migration:
 
@@ -708,7 +1061,7 @@ The Python `0.0.2` codebase is frozen at `stocksage.db`. Migration:
 
 ---
 
-## 14. References
+## 15. References
 
 - allbert-assist-exs: [github.com/lexlapax/allbert-assist-exs](https://github.com/lexlapax/allbert-assist-exs) — Elixir umbrella at v0.10
 - allbert-assist-rs: [github.com/lexlapax/allbert-assist-rs](https://github.com/lexlapax/allbert-assist-rs) — Rust version at v0.15
