@@ -31,6 +31,21 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=_NAMING_CONVENTION)
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    requests: Mapped[list["AnalysisRequest"]] = relationship(back_populates="user")
+    created_analyses: Mapped[list["Analysis"]] = relationship(back_populates="created_by")
+    requested_queue_items: Mapped[list["AnalysisQueue"]] = relationship(
+        back_populates="requested_by"
+    )
+
+
 class Analysis(Base):
     __tablename__ = "analyses"
     __table_args__ = (UniqueConstraint("ticker", "trade_date", name="uq_ticker_date"),)
@@ -54,6 +69,9 @@ class Analysis(Base):
     quick_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Error tracking
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
     detail: Mapped[Optional["AnalysisDetail"]] = relationship(
         back_populates="analysis", uselist=False, cascade="all, delete-orphan"
@@ -61,6 +79,8 @@ class Analysis(Base):
     outcome: Mapped[Optional["Outcome"]] = relationship(
         back_populates="analysis", uselist=False, cascade="all, delete-orphan"
     )
+    created_by: Mapped[Optional["User"]] = relationship(back_populates="created_analyses")
+    requests: Mapped[list["AnalysisRequest"]] = relationship(back_populates="analysis")
 
 
 class AnalysisDetail(Base):
@@ -119,5 +139,34 @@ class AnalysisQueue(Base):
     analysis_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("analyses.id"), nullable=True
     )
+    requested_by_user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
     analysis: Mapped[Optional["Analysis"]] = relationship()
+    requested_by: Mapped[Optional["User"]] = relationship(back_populates="requested_queue_items")
+    requests: Mapped[list["AnalysisRequest"]] = relationship(back_populates="queue_item")
+
+
+class AnalysisRequest(Base):
+    __tablename__ = "analysis_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    ticker: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    trade_date: Mapped[date] = mapped_column(Date, nullable=False)
+    analysis_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("analyses.id", ondelete="SET NULL"), nullable=True
+    )
+    queue_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("analysis_queue.id", ondelete="SET NULL"), nullable=True
+    )
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="requests")
+    analysis: Mapped[Optional["Analysis"]] = relationship(back_populates="requests")
+    queue_item: Mapped[Optional["AnalysisQueue"]] = relationship(back_populates="requests")

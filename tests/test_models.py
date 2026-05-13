@@ -5,7 +5,7 @@ from datetime import date, datetime
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from core.models import Analysis, AnalysisDetail, AnalysisQueue, Outcome
+from core.models import Analysis, AnalysisDetail, AnalysisQueue, AnalysisRequest, Outcome, User
 
 
 def test_analysis_persists(db):
@@ -78,3 +78,35 @@ def test_analysis_queue(db):
     assert fetched.status == "queued"
     assert fetched.attempts == 0
     assert fetched.last_error is None
+
+
+def test_user_request_relationships(db, completed_analysis):
+    user = User(
+        username="alice",
+        created_at=datetime(2026, 4, 1, 8, 0),
+        last_seen_at=datetime(2026, 4, 1, 8, 0),
+    )
+    queue_item = AnalysisQueue(
+        ticker="AAPL",
+        trade_date=completed_analysis.trade_date,
+        priority=1,
+        queued_at=datetime(2026, 4, 1, 8, 0),
+        requested_by=user,
+    )
+    request = AnalysisRequest(
+        user=user,
+        ticker="AAPL",
+        trade_date=completed_analysis.trade_date,
+        analysis=completed_analysis,
+        queue_item=queue_item,
+        source="test",
+        status="queued",
+        requested_at=datetime(2026, 4, 1, 8, 1),
+    )
+    db.add(request)
+    db.commit()
+
+    fetched = db.query(AnalysisRequest).filter_by(ticker="AAPL").one()
+    assert fetched.user.username == "alice"
+    assert fetched.analysis.id == completed_analysis.id
+    assert fetched.queue_item.requested_by.username == "alice"

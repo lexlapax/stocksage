@@ -11,7 +11,8 @@ with useful M03 alpha-aware metrics and M05 user-scoped history.
 
 ## Status
 
-**Planned.** Starts after Milestone 05 establishes user identity and request attribution.
+**Planned / next.** Milestone 05 has established user identity and request attribution; this is the
+next implementation milestone.
 
 ---
 

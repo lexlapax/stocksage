@@ -6,7 +6,7 @@ from click.testing import CliRunner
 
 import stocksage.cli as cli_main
 from core.memory_sync import MemorySyncReport
-from core.models import Analysis, AnalysisDetail, AnalysisQueue, Outcome
+from core.models import Analysis, AnalysisDetail, AnalysisQueue, AnalysisRequest, Outcome, User
 from core.outcomes import ResolutionReport
 from stocksage.cli import _prepare_analysis_row
 from worker.runner import WorkerReport
@@ -130,11 +130,21 @@ def test_queue_commands_add_list_retry_and_clear(db, monkeypatch):
     add = runner.invoke(cli_main.cli, ["queue", "add", "AAPL", "--date", "2026-01-02"])
     assert add.exit_code == 0
     assert "Queued AAPL" in add.output
+    assert "request=" in add.output
+    user = db.query(User).one()
+    request = db.query(AnalysisRequest).filter_by(ticker="AAPL").one()
+    assert request.user_id == user.id
+    assert request.status == "queued"
 
     listed = runner.invoke(cli_main.cli, ["queue", "list"])
     assert listed.exit_code == 0
     assert "AAPL" in listed.output
     assert "queued" in listed.output
+    assert str(user.id) in listed.output
+
+    listed_for_user = runner.invoke(cli_main.cli, ["queue", "list", "--userid", str(user.id)])
+    assert listed_for_user.exit_code == 0
+    assert "AAPL" in listed_for_user.output
 
     row = db.query(AnalysisQueue).filter_by(ticker="AAPL").one()
     row.status = "failed"
@@ -216,4 +226,74 @@ def test_analyze_command_marks_failed_on_analyzer_error(db, monkeypatch):
     row = db.query(Analysis).filter_by(ticker="MSFT").one()
     assert row.status == "failed"
     assert row.error_message == "provider unavailable"
+    request = db.query(AnalysisRequest).filter_by(ticker="MSFT").one()
+    assert request.status == "failed"
+    assert request.analysis_id == row.id
     assert calls == [db]
+
+
+def test_list_command_can_show_user_request_history(db, completed_analysis, monkeypatch):
+    class SessionContext:
+        def __enter__(self):
+            return db
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(cli_main, "SessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(cli_main, "init_db", lambda: None)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main.cli,
+        ["analyze", "AAPL", "--date", "2026-01-02", "--user", "alice"],
+    )
+    assert result.exit_code == 0
+
+    listed = runner.invoke(cli_main.cli, ["list", "--user", "alice"])
+
+    assert listed.exit_code == 0
+    assert "reused" in listed.output
+    assert "AAPL" in listed.output
+
+
+def test_queue_add_batch_records_user_requests(db, monkeypatch):
+    class SessionContext:
+        def __enter__(self):
+            return db
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(cli_main, "SessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(cli_main, "init_db", lambda: None)
+
+    result = CliRunner().invoke(
+        cli_main.cli,
+        ["queue", "add-batch", "AAPL", "MSFT", "--date", "2026-01-02", "--user", "alice"],
+    )
+
+    assert result.exit_code == 0
+    user = db.query(User).filter_by(username="alice").one()
+    assert db.query(AnalysisRequest).filter_by(user_id=user.id).count() == 2
+    assert {row.requested_by_user_id for row in db.query(AnalysisQueue).all()} == {user.id}
+
+
+def test_cli_userid_requires_existing_user(db, monkeypatch):
+    class SessionContext:
+        def __enter__(self):
+            return db
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(cli_main, "SessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(cli_main, "init_db", lambda: None)
+
+    result = CliRunner().invoke(
+        cli_main.cli,
+        ["queue", "add", "AAPL", "--date", "2026-01-02", "--userid", "99"],
+    )
+
+    assert result.exit_code != 0
+    assert "Unknown user id 99" in result.output

@@ -22,6 +22,7 @@ class JobSpec:
     queue_id: int
     ticker: str
     trade_date: date
+    requested_by_user_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -121,7 +122,12 @@ def _claim_next_job(session_factory: Callable[[], Session]) -> JobSpec | None:
         job = claim_next_queue_item(db)
         if job is None:
             return None
-        return JobSpec(queue_id=job.id, ticker=job.ticker, trade_date=job.trade_date)
+        return JobSpec(
+            queue_id=job.id,
+            ticker=job.ticker,
+            trade_date=job.trade_date,
+            requested_by_user_id=job.requested_by_user_id,
+        )
 
 
 def _process_claimed_job(
@@ -134,7 +140,14 @@ def _process_claimed_job(
     analysis_id = None
     try:
         with session_factory() as db:
-            prep = prepare_analysis_row(db, spec.ticker, spec.trade_date, force=True, cfg=cfg)
+            prep = prepare_analysis_row(
+                db,
+                spec.ticker,
+                spec.trade_date,
+                force=True,
+                cfg=cfg,
+                requested_by_user_id=spec.requested_by_user_id,
+            )
             analysis_id = prep.analysis.id
             sync_resolved_outcomes_to_memory(db, cfg)
 

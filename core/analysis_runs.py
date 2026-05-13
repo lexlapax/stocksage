@@ -25,6 +25,7 @@ def prepare_analysis_row(
     trade_date: date,
     force: bool,
     cfg: Settings = _default_settings,
+    requested_by_user_id: int | None = None,
 ) -> AnalysisRunPrep:
     ticker = ticker.upper()
     existing = (
@@ -56,6 +57,8 @@ def prepare_analysis_row(
         existing.deep_model = cfg.deep_think_llm
         existing.quick_model = cfg.quick_think_llm
         existing.error_message = None
+        if existing.created_by_user_id is None:
+            existing.created_by_user_id = requested_by_user_id
         db.commit()
         db.refresh(existing)
         return AnalysisRunPrep(existing, True, "forced")
@@ -68,6 +71,7 @@ def prepare_analysis_row(
         llm_provider=cfg.llm_provider,
         deep_model=cfg.deep_think_llm,
         quick_model=cfg.quick_think_llm,
+        created_by_user_id=requested_by_user_id,
     )
     db.add(row)
     db.commit()

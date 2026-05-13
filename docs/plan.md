@@ -169,8 +169,8 @@ StockSage uses shared canonical analysis records plus per-user request history:
 | trade_date | DATE | denormalized for filtering and history |
 | analysis_id | INTEGER FK → analyses.id | nullable until canonical analysis exists |
 | queue_id | INTEGER FK → analysis_queue.id | nullable for direct runs or reused analyses |
-| source | VARCHAR(32) | cli / web / worker / backfill |
-| status | VARCHAR(16) | requested / queued / running / completed / failed / reused |
+| source | VARCHAR(32) | cli / cli_queue / web / backfill_analysis / backfill_queue |
+| status | VARCHAR(16) | queued / running / completed / failed / reused |
 | requested_at | DATETIME | |
 | completed_at | DATETIME | nullable |
 | error_message | TEXT | nullable |
@@ -203,7 +203,9 @@ stocksage/
 │   ├── outcomes.py            ← fetch returns, resolve pending analyses
 │   ├── trends.py              ← alpha-aware accuracy metrics, trending
 │   ├── memory_sync.py         ← resolved outcome sync to TradingAgents memory
-│   └── queueing.py            ← queue operations and job claiming
+│   ├── queueing.py            ← queue operations and job claiming
+│   ├── users.py               ← default OS user, --user, and --userid resolution
+│   └── request_history.py     ← per-user request rows over shared analyses
 ├── cli/
 │   ├── __init__.py
 │   └── main.py                ← compatibility wrapper for python -m cli.main
@@ -240,8 +242,8 @@ stocksage/
 | **02** | Memory & Trending Engine | accepted | `docs/02-milestone.md` |
 | **03** | Accuracy Semantics + TradingAgents Memory Sync | accepted | `docs/03-milestone.md` |
 | **04** | Async Job Queue + Worker | accepted | `docs/04-milestone.md` |
-| **05** | User Identity + Shared Analysis Ownership Foundation | active next | `docs/05-milestone.md` |
-| **06** | FastAPI + Jinja2/HTMX Web UI + Charts | planned | `docs/06-milestone.md` |
+| **05** | User Identity + Shared Analysis Ownership Foundation | accepted | `docs/05-milestone.md` |
+| **06** | FastAPI + Jinja2/HTMX Web UI + Charts | active next | `docs/06-milestone.md` |
 
 ---
 

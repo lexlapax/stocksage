@@ -28,6 +28,11 @@ from core.queueing import (
     retry_failed_queue_items,
     retry_queue_item,
 )
+from core.request_history import (
+    create_analysis_request,
+    list_user_requests,
+    update_analysis_request,
+)
 from core.trends import (
     get_all_ticker_stats,
     get_model_stats,
@@ -35,6 +40,7 @@ from core.trends import (
     is_correct_alpha_direction,
     is_correct_raw_direction,
 )
+from core.users import UserResolutionError, resolve_request_user
 from worker.runner import run_queued_jobs
 
 console = Console()
@@ -56,15 +62,44 @@ def cli():
     default=False,
     help="Re-run even if analysis already exists for this ticker+date",
 )
-def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
+@click.option("--user", "username", default=None, help="Username to attribute this request to")
+@click.option(
+    "--userid", "user_id", default=None, type=int, help="Existing user id to attribute to"
+)
+def analyze(
+    ticker: str,
+    trade_date: str,
+    debug: bool,
+    force: bool,
+    username: str | None,
+    user_id: int | None,
+):
     """Run a full analysis for TICKER and persist to the database."""
     init_db()
     ticker = ticker.upper()
     parsed_date = date.fromisoformat(trade_date) if trade_date else date.today()
 
     with SessionLocal() as db:
-        prep = _prepare_analysis_row(db, ticker, parsed_date, force, settings)
+        user = _resolve_cli_user(db, username, user_id)
+        prep = _prepare_analysis_row(
+            db,
+            ticker,
+            parsed_date,
+            force,
+            settings,
+            requested_by_user_id=user.id,
+        )
         if not prep.should_run:
+            create_analysis_request(
+                db,
+                user_id=user.id,
+                ticker=ticker,
+                trade_date=parsed_date,
+                source="cli",
+                status=_request_status_for_existing(prep.reason),
+                analysis_id=prep.analysis.id,
+                error_message=prep.analysis.error_message,
+            )
             if prep.reason == "completed":
                 detail = f"Already analyzed {ticker} on {parsed_date} (id={prep.analysis.id})."
             else:
@@ -76,6 +111,16 @@ def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
             sys.exit(0)
         sync_resolved_outcomes_to_memory(db, settings)
         analysis_id = prep.analysis.id
+        request = create_analysis_request(
+            db,
+            user_id=user.id,
+            ticker=ticker,
+            trade_date=parsed_date,
+            source="cli",
+            status="running",
+            analysis_id=analysis_id,
+        )
+        request_id = request.id
 
     console.print(f"[cyan]Analyzing {ticker} for {parsed_date}...[/cyan]")
 
@@ -85,11 +130,19 @@ def analyze(ticker: str, trade_date: str, debug: bool, force: bool):
     except Exception as exc:
         with SessionLocal() as db:
             mark_analysis_failed(db, analysis_id, str(exc))
+            update_analysis_request(
+                db,
+                request_id,
+                status="failed",
+                analysis_id=analysis_id,
+                error_message=str(exc),
+            )
         console.print(f"[red]Analysis failed: {exc}[/red]")
         raise SystemExit(1) from exc
 
     with SessionLocal() as db:
         persist_analysis_result(db, analysis_id, result)
+        update_analysis_request(db, request_id, status="completed", analysis_id=analysis_id)
 
     console.print("\n[bold green]=== DECISION ===[/bold green]")
     console.print(f"[bold]Ticker:[/bold]  {ticker}")
@@ -236,19 +289,65 @@ def summary(ticker: str, n: int):
 @click.option(
     "--status",
     default=None,
-    type=click.Choice(["queued", "running", "completed", "failed"]),
+    type=click.Choice(["queued", "running", "completed", "failed", "reused"]),
     help="Filter by status",
 )
 @click.option("--n", default=20, help="Max rows to show")
-def list_analyses(ticker: str, status: str, n: int):
+@click.option("--user", "username", default=None, help="Show request history for this username")
+@click.option(
+    "--userid", "user_id", default=None, type=int, help="Show request history for this user id"
+)
+def list_analyses(
+    ticker: str | None,
+    status: str | None,
+    n: int,
+    username: str | None,
+    user_id: int | None,
+):
     """List recent analyses."""
     init_db()
     with SessionLocal() as db:
+        if username is not None or user_id is not None:
+            user = _resolve_cli_user(db, username, user_id)
+            rows = list_user_requests(db, user_id=user.id, ticker=ticker, status=status, limit=n)
+            table_data = [
+                [
+                    row.id,
+                    row.ticker,
+                    str(row.trade_date),
+                    row.status,
+                    row.analysis_id or "-",
+                    row.queue_id or "-",
+                    row.source,
+                    str(row.requested_at)[:16],
+                ]
+                for row in rows
+            ]
+            print(
+                tabulate(
+                    table_data,
+                    headers=[
+                        "Req ID",
+                        "Ticker",
+                        "Date",
+                        "Status",
+                        "Analysis",
+                        "Queue",
+                        "Source",
+                        "Requested",
+                    ],
+                    tablefmt="rounded_outline",
+                )
+            )
+            return
+
         q = db.query(Analysis).order_by(Analysis.run_at.desc())
         if ticker:
             q = q.filter(Analysis.ticker == ticker.upper())
-        if status:
+        if status and status != "reused":
             q = q.filter(Analysis.status == status)
+        elif status == "reused":
+            q = q.filter(False)
         rows = q.limit(n).all()
 
     table_data = [
@@ -274,26 +373,42 @@ def queue():
 @click.argument("ticker")
 @click.option("--date", "trade_date", default=None, help="Trade date YYYY-MM-DD (default: today)")
 @click.option("--priority", default=0, type=int, help="Higher priority runs first")
-def queue_add(ticker: str, trade_date: str | None, priority: int):
+@click.option("--user", "username", default=None, help="Username to attribute this request to")
+@click.option(
+    "--userid", "user_id", default=None, type=int, help="Existing user id to attribute to"
+)
+def queue_add(
+    ticker: str,
+    trade_date: str | None,
+    priority: int,
+    username: str | None,
+    user_id: int | None,
+):
     """Queue one ticker for analysis."""
     init_db()
     parsed_date = _parse_trade_date(trade_date)
     with SessionLocal() as db:
-        result = enqueue_analysis(db, ticker, parsed_date, priority)
-    if result.created:
+        user = _resolve_cli_user(db, username, user_id)
+        result = enqueue_analysis(db, ticker, parsed_date, priority, requested_by_user_id=user.id)
+        request = _record_enqueue_request(db, user.id, ticker, parsed_date, result)
+        queue_id = result.queue_item.id if result.queue_item is not None else None
+        analysis_id = result.analysis.id if result.analysis is not None else None
+        reason = result.reason
+        created = result.created
+    if created:
         console.print(
             f"[green]Queued {ticker.upper()} on {parsed_date} "
-            f"(id={result.queue_item.id}, priority={priority}).[/green]"
+            f"(id={queue_id}, request={request.id}, priority={priority}).[/green]"
         )
-    elif result.queue_item is not None:
+    elif queue_id is not None:
         console.print(
             f"[yellow]{ticker.upper()} on {parsed_date} already has queue job "
-            f"id={result.queue_item.id} status={result.reason}.[/yellow]"
+            f"id={queue_id} status={reason}; recorded request={request.id}.[/yellow]"
         )
     else:
         console.print(
-            f"[yellow]{ticker.upper()} on {parsed_date} skipped: {result.reason} "
-            f"(analysis id={result.analysis.id}).[/yellow]"
+            f"[yellow]{ticker.upper()} on {parsed_date} skipped: {reason} "
+            f"(analysis id={analysis_id}, request={request.id}).[/yellow]"
         )
 
 
@@ -301,7 +416,17 @@ def queue_add(ticker: str, trade_date: str | None, priority: int):
 @click.argument("tickers", nargs=-1, required=True)
 @click.option("--date", "trade_date", default=None, help="Trade date YYYY-MM-DD (default: today)")
 @click.option("--priority", default=0, type=int, help="Higher priority runs first")
-def queue_add_batch(tickers: tuple[str, ...], trade_date: str | None, priority: int):
+@click.option("--user", "username", default=None, help="Username to attribute this request to")
+@click.option(
+    "--userid", "user_id", default=None, type=int, help="Existing user id to attribute to"
+)
+def queue_add_batch(
+    tickers: tuple[str, ...],
+    trade_date: str | None,
+    priority: int,
+    username: str | None,
+    user_id: int | None,
+):
     """Queue multiple tickers for analysis."""
     init_db()
     parsed_date = _parse_trade_date(trade_date)
@@ -309,32 +434,54 @@ def queue_add_batch(tickers: tuple[str, ...], trade_date: str | None, priority: 
     skipped = 0
     rows = []
     with SessionLocal() as db:
+        user = _resolve_cli_user(db, username, user_id)
         for ticker in tickers:
-            result = enqueue_analysis(db, ticker, parsed_date, priority)
+            result = enqueue_analysis(
+                db,
+                ticker,
+                parsed_date,
+                priority,
+                requested_by_user_id=user.id,
+            )
+            request = _record_enqueue_request(db, user.id, ticker, parsed_date, result)
             if result.created:
                 created += 1
-                rows.append([result.queue_item.id, ticker.upper(), parsed_date, "queued"])
+                rows.append(
+                    [result.queue_item.id, request.id, ticker.upper(), parsed_date, "queued"]
+                )
             else:
                 skipped += 1
                 queue_id = result.queue_item.id if result.queue_item is not None else "-"
-                rows.append([queue_id, ticker.upper(), parsed_date, result.reason])
+                rows.append([queue_id, request.id, ticker.upper(), parsed_date, result.reason])
     console.print(f"[green]Queued {created} ticker(s); skipped {skipped}.[/green]")
     print(
-        tabulate(rows, headers=["Queue ID", "Ticker", "Date", "Result"], tablefmt="rounded_outline")
+        tabulate(
+            rows,
+            headers=["Queue ID", "Request", "Ticker", "Date", "Result"],
+            tablefmt="rounded_outline",
+        )
     )
 
 
 @queue.command("list")
 @click.option("--status", default=None, type=click.Choice(QUEUE_STATUSES), help="Filter by status")
 @click.option("--n", default=50, type=int, help="Max rows to show")
-def queue_list(status: str | None, n: int):
+@click.option("--user", "username", default=None, help="Filter by requesting username")
+@click.option("--userid", "user_id", default=None, type=int, help="Filter by requesting user id")
+def queue_list(status: str | None, n: int, username: str | None, user_id: int | None):
     """List queued analysis jobs."""
     init_db()
     with SessionLocal() as db:
-        rows = list_queue_items(db, status=status, limit=n)
+        requested_by_user_id = None
+        if username is not None or user_id is not None:
+            requested_by_user_id = _resolve_cli_user(db, username, user_id).id
+        rows = list_queue_items(
+            db, status=status, limit=n, requested_by_user_id=requested_by_user_id
+        )
     table_data = [
         [
             item.id,
+            item.requested_by_user_id or "-",
             item.ticker,
             str(item.trade_date),
             item.status,
@@ -353,6 +500,7 @@ def queue_list(status: str | None, n: int):
             table_data,
             headers=[
                 "ID",
+                "User",
                 "Ticker",
                 "Date",
                 "Status",
@@ -500,6 +648,43 @@ def models_command():
 
 def _parse_trade_date(value: str | None) -> date:
     return date.fromisoformat(value) if value else date.today()
+
+
+def _resolve_cli_user(db, username: str | None, user_id: int | None):
+    try:
+        return resolve_request_user(db, username=username, user_id=user_id)
+    except UserResolutionError as exc:
+        raise click.UsageError(str(exc)) from exc
+
+
+def _request_status_for_existing(status: str) -> str:
+    return "reused" if status == "completed" else status
+
+
+def _record_enqueue_request(db, user_id: int, ticker: str, trade_date: date, result):
+    if result.queue_item is not None:
+        return create_analysis_request(
+            db,
+            user_id=user_id,
+            ticker=ticker,
+            trade_date=trade_date,
+            source="cli_queue",
+            status=result.queue_item.status,
+            analysis_id=result.queue_item.analysis_id,
+            queue_id=result.queue_item.id,
+        )
+
+    status = _request_status_for_existing(result.analysis.status)
+    return create_analysis_request(
+        db,
+        user_id=user_id,
+        ticker=ticker,
+        trade_date=trade_date,
+        source="cli_queue",
+        status=status,
+        analysis_id=result.analysis.id,
+        error_message=result.analysis.error_message,
+    )
 
 
 def _short_time(value) -> str:

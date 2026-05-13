@@ -6,19 +6,31 @@ from core.models import AnalysisQueue
 from core.queueing import (
     clear_completed_queue_items,
     enqueue_analysis,
+    list_queue_items,
     reset_stale_running_jobs,
     retry_failed_queue_items,
     retry_queue_item,
 )
+from core.request_history import create_analysis_request
+from core.users import resolve_request_user
 
 
 def test_enqueue_analysis_creates_queue_item(db):
-    result = enqueue_analysis(db, "aapl", date(2026, 1, 2), priority=2)
+    user = resolve_request_user(db, username="alice")
+
+    result = enqueue_analysis(
+        db,
+        "aapl",
+        date(2026, 1, 2),
+        priority=2,
+        requested_by_user_id=user.id,
+    )
 
     assert result.created is True
     assert result.queue_item.ticker == "AAPL"
     assert result.queue_item.status == "queued"
     assert result.queue_item.priority == 2
+    assert result.queue_item.requested_by_user_id == user.id
 
 
 def test_enqueue_analysis_reuses_active_job_and_boosts_priority(db):
@@ -72,3 +84,50 @@ def test_reset_stale_running_jobs(db):
     assert row.status == "queued"
     assert row.started_at is None
     assert "stale" in row.last_error
+
+
+def test_list_queue_items_can_filter_by_requesting_user(db):
+    alice = resolve_request_user(db, username="alice")
+    bob = resolve_request_user(db, username="bob")
+    shared = enqueue_analysis(db, "AAPL", date(2026, 1, 2), requested_by_user_id=alice.id)
+    create_analysis_request(
+        db,
+        user_id=bob.id,
+        ticker="AAPL",
+        trade_date=date(2026, 1, 2),
+        source="cli_queue",
+        status="queued",
+        queue_id=shared.queue_item.id,
+    )
+    enqueue_analysis(db, "MSFT", date(2026, 1, 2), requested_by_user_id=bob.id)
+
+    rows = list_queue_items(db, requested_by_user_id=alice.id)
+    bob_rows = list_queue_items(db, requested_by_user_id=bob.id)
+
+    assert [row.ticker for row in rows] == ["AAPL"]
+    assert {row.ticker for row in bob_rows} == {"AAPL", "MSFT"}
+
+
+def test_retry_reopens_failed_request_history(db):
+    user = resolve_request_user(db, username="alice")
+    job = enqueue_analysis(db, "PLTR", date(2026, 1, 2), requested_by_user_id=user.id).queue_item
+    request = create_analysis_request(
+        db,
+        user_id=user.id,
+        ticker="PLTR",
+        trade_date=date(2026, 1, 2),
+        source="cli_queue",
+        status="queued",
+        queue_id=job.id,
+    )
+    job.status = "failed"
+    request.status = "failed"
+    request.error_message = "rate limited"
+    db.commit()
+
+    retry_queue_item(db, job.id)
+
+    db.refresh(request)
+    assert request.status == "queued"
+    assert request.completed_at is None
+    assert request.error_message is None

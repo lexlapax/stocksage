@@ -19,9 +19,13 @@ All notable changes to StockSage are tracked here.
 - Operational queue commands: `queue add`, `queue add-batch`, `queue list`, `queue retry`, `queue clear-completed`, and `queue run`.
 - Queue worker with retry support, stale running-job reset, conservative default concurrency, and configurable `--max-workers`.
 - Alembic queue-state migration adding status, timestamps, attempts, and last-error tracking to `analysis_queue`.
+- User identity model with default local OS user resolution, `--user` auto-create/reuse, and strict existing-id `--userid` lookup.
+- Per-user `analysis_requests` history over shared canonical analyses, including queued work, reused analyses, failures, and migration backfill.
+- CLI attribution for `analyze`, `queue add`, and `queue add-batch`, plus user-scoped `list` and `queue list` filters.
 - Unit and CLI integration tests covering analyzer parsing, ORM relationships, outcome resolution, trend analytics, and forced reruns.
 - Memory sync tests covering pending-entry resolution, fallback decision rendering, and idempotency.
 - Queue and worker tests covering enqueueing, duplicate protection, retry, failure, stale recovery, and worker persistence.
+- User/request tests covering default user creation, username reuse, `--userid`, shared analysis reuse, queue attribution, and migration backfill.
 - Ruff linting and formatting checks configured in `pyproject.toml`.
 - Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, M05 user identity/request history, and M06 web UI/charts.
 - Focused docs for local setup/CLI usage and development workflow.
@@ -38,8 +42,8 @@ All notable changes to StockSage are tracked here.
 - Milestone docs now mark M01 and M02 accepted after live validation and move raw-vs-alpha accuracy plus memory sync into M03.
 - `README.md` is now a concise project front door, with operational details moved to `docs/getting-started.md` and `docs/development.md`.
 - Roadmap now inserts M05 user identity and shared-analysis request history before moving web UI/charts to M06.
+- Active roadmap now marks M05 accepted and moves M06 web UI/charts into the next implementation slot.
 
 ### Known Gaps
 
-- User identity/request history remains planned for M05.
 - Web UI remains planned for M06.

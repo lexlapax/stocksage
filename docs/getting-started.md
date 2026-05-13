@@ -76,6 +76,9 @@ uv run stocksage summary AAPL
 # List recent analyses
 uv run stocksage list
 
+# Show request history for one user
+uv run stocksage list --user alice
+
 # Rank tickers by alpha-direction accuracy, average alpha, or resolved count
 uv run stocksage leaderboard --by accuracy --min-resolved 3
 
@@ -93,6 +96,9 @@ uv run stocksage queue add-batch AAPL MSFT NVDA GOOGL AMZN --date 2026-05-01
 
 # Inspect queued/running/completed/failed jobs
 uv run stocksage queue list
+
+# Inspect queued work requested by one user
+uv run stocksage queue list --user alice
 
 # Process queued work; default is one worker to control LLM/API cost
 uv run stocksage queue run --limit 5
@@ -112,9 +118,8 @@ uv run python -m cli.main --help
 
 - `stocksage analyze` makes live LLM and market-data calls.
 - `stocksage resolve` only resolves analyses old enough to have the configured holding period.
-- Milestone 05 will add user attribution flags. The planned default user is the current OS
-  username; `--user USERNAME` auto-creates/reuses a username, while `--userid ID` must reference an
-  existing user.
+- CLI write commands default to the current OS username. Use `--user USERNAME` to auto-create/reuse
+  a named user, or `--userid ID` to use an existing numeric user id.
 - `stocksage queue run` defaults to one concurrent analysis because each job can make live LLM and
   market-data calls. Increase `--max-workers` only when the provider budget and rate limits are
   comfortable.

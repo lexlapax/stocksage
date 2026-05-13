@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from core.analyzer import AnalysisResult
 from core.models import Analysis, AnalysisQueue
 from core.queueing import enqueue_analysis, retry_queue_item
+from core.request_history import create_analysis_request
+from core.users import resolve_request_user
 from worker.runner import run_queued_jobs
 
 
@@ -72,7 +74,17 @@ class FailingAnalyzer:
 
 
 def test_worker_processes_queued_job(db, tmp_path):
-    job = enqueue_analysis(db, "AAPL", date(2026, 1, 2)).queue_item
+    user = resolve_request_user(db, username="alice")
+    job = enqueue_analysis(db, "AAPL", date(2026, 1, 2), requested_by_user_id=user.id).queue_item
+    request = create_analysis_request(
+        db,
+        user_id=user.id,
+        ticker="AAPL",
+        trade_date=date(2026, 1, 2),
+        source="cli_queue",
+        status="queued",
+        queue_id=job.id,
+    )
 
     report = run_queued_jobs(
         max_jobs=1,
@@ -87,11 +99,25 @@ def test_worker_processes_queued_job(db, tmp_path):
     assert job.status == "completed"
     assert job.analysis_id == analysis.id
     assert analysis.status == "completed"
+    assert analysis.created_by_user_id == user.id
     assert analysis.detail is not None
+    db.refresh(request)
+    assert request.status == "completed"
+    assert request.analysis_id == analysis.id
 
 
 def test_worker_marks_failed_job_and_retry_reuses_analysis(db, tmp_path):
-    job = enqueue_analysis(db, "PLTR", date(2026, 1, 2)).queue_item
+    user = resolve_request_user(db, username="alice")
+    job = enqueue_analysis(db, "PLTR", date(2026, 1, 2), requested_by_user_id=user.id).queue_item
+    request = create_analysis_request(
+        db,
+        user_id=user.id,
+        ticker="PLTR",
+        trade_date=date(2026, 1, 2),
+        source="cli_queue",
+        status="queued",
+        queue_id=job.id,
+    )
 
     failed = run_queued_jobs(
         max_jobs=1,
@@ -107,6 +133,9 @@ def test_worker_marks_failed_job_and_retry_reuses_analysis(db, tmp_path):
     assert job.analysis_id == failed_analysis.id
     assert failed_analysis.status == "failed"
     assert "provider failed" in job.last_error
+    db.refresh(request)
+    assert request.status == "failed"
+    assert request.analysis_id == failed_analysis.id
 
     retry_queue_item(db, job.id)
     retried = run_queued_jobs(
@@ -121,6 +150,8 @@ def test_worker_marks_failed_job_and_retry_reuses_analysis(db, tmp_path):
     assert job.status == "completed"
     assert db.query(Analysis).filter_by(ticker="PLTR").count() == 1
     assert db.get(Analysis, failed_analysis.id).status == "completed"
+    db.refresh(request)
+    assert request.status == "completed"
 
 
 def test_worker_marks_queue_completed_when_analysis_already_exists(
@@ -135,6 +166,16 @@ def test_worker_marks_queue_completed_when_analysis_already_exists(
     )
     db.add(job)
     db.commit()
+    user = resolve_request_user(db, username="alice")
+    request = create_analysis_request(
+        db,
+        user_id=user.id,
+        ticker="AAPL",
+        trade_date=completed_analysis.trade_date,
+        source="cli_queue",
+        status="queued",
+        queue_id=job.id,
+    )
 
     report = run_queued_jobs(
         max_jobs=1,
@@ -148,3 +189,6 @@ def test_worker_marks_queue_completed_when_analysis_already_exists(
     assert report.skipped == 1
     assert job.status == "completed"
     assert job.analysis_id == completed_analysis.id
+    db.refresh(request)
+    assert request.status == "completed"
+    assert request.analysis_id == completed_analysis.id
