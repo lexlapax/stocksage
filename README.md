@@ -20,6 +20,8 @@ It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared ana
   Chart.js visualizations, local run docs, and route/template tests are complete.
 - **M07 accepted:** hardening and polish close the post-release gaps found after comparing the
   accepted M01-M06 specs against the implementation.
+- **M08 ready:** UI clarity, guided help, browser-based queue operation, and quick re-analysis are
+  scoped for implementation.
 
 ## Project Docs
 
@@ -36,7 +38,8 @@ It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared ana
 | M06 details | [docs/06-milestone.md](docs/06-milestone.md) |
 | M06 UI wireframe | [docs/06-ui-design.md](docs/06-ui-design.md) |
 | M07 hardening | [docs/07-milestone.md](docs/07-milestone.md) |
+| M08 UI clarity | [docs/08-milestone.md](docs/08-milestone.md) |
 
 ## Next Steps
 
-Plan M08 scope: a real user switcher, authentication groundwork, or deployment documentation.
+Implement M08: contextual help, browser queue running, and quick re-analysis actions.

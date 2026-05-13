@@ -19,6 +19,7 @@ outcome tracking, and a web UI. The core loop is:
 8. `core/users.py` and `core/request_history.py` track who asked for shared canonical analyses
 9. Milestone 06 adds the FastAPI + Jinja2/HTMX web UI and charts
 10. Milestone 07 closes post-release hardening and polish gaps from the `0.0.1` baseline
+11. Milestone 08 is implementation-ready for UI clarity, guided help, web queue operation, and quick re-analysis
 
 Human-facing orientation starts in `README.md`. Local setup and CLI usage live in
 `docs/getting-started.md`; development workflow lives in `docs/development.md`. Full architecture
@@ -28,11 +29,11 @@ and DB schema: `docs/plan.md`
 
 ## Current Status
 
-**Current status: Milestone 07 accepted — Hardening & Polish**
+**Current status: Milestone 08 ready — UI Clarity, Guided Help, Web Queue Operation, and Quick Re-analysis**
 Detailed task lists and acceptance criteria:
 `docs/01-milestone.md`, `docs/02-milestone.md`, `docs/03-milestone.md`,
 `docs/04-milestone.md`, `docs/05-milestone.md`, `docs/06-milestone.md`,
-`docs/07-milestone.md`
+`docs/07-milestone.md`, `docs/08-milestone.md`
 
 **What exists:**
 - `config.py` — pydantic-settings; reads `.env`; builds tradingagents config dict
@@ -65,8 +66,10 @@ Detailed task lists and acceptance criteria:
 - `docs/05-milestone.md` — accepted user identity + request history work
 - `docs/06-milestone.md` — accepted web UI + charts work
 - `docs/07-milestone.md` — accepted hardening and polish gap analysis
+- `docs/08-milestone.md` — ready implementation plan for UI clarity, guided help, web queue
+  operation, and quick re-analysis
 
-**Next action:** Plan the next milestone candidate:
+**Next action:** Implement Milestone 08 task-by-task:
 ```bash
 uv run ruff check .
 uv run ruff format --check .
@@ -162,4 +165,5 @@ or incomplete.
 
 ## Milestones
 
-Milestones 01-07 are accepted. Choose and document the next milestone before starting new scope.
+Milestones 01-07 are accepted. Current implementation scope is tracked in
+`docs/08-milestone.md`; keep its checkboxes and acceptance criteria current as M08 lands.

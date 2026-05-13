@@ -4,7 +4,10 @@ All notable changes to StockSage are tracked here.
 
 ## Unreleased
 
-No unreleased changes.
+### Added
+
+- M08 implementation-ready plan for contextual help, browser controls for running queued LLM
+  analyses, and quick re-analysis actions from analyzed tickers.
 
 ## [0.0.1] - 2026-05-12
 
