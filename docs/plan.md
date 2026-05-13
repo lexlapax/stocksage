@@ -190,7 +190,8 @@ stocksage/
 │   ├── 03-milestone.md        ← Accuracy semantics + memory sync
 │   ├── 04-milestone.md        ← Async queue + worker
 │   ├── 05-milestone.md        ← User identity + request history
-│   └── 06-milestone.md        ← Web UI + charts
+│   ├── 06-milestone.md        ← Web UI + charts
+│   └── 06-ui-design.md        ← M06 wireframe and UI building blocks
 ├── stocksage/
 │   ├── __init__.py
 │   └── cli.py                 ← Click commands and console script entry point
@@ -244,6 +245,9 @@ stocksage/
 | **04** | Async Job Queue + Worker | accepted | `docs/04-milestone.md` |
 | **05** | User Identity + Shared Analysis Ownership Foundation | accepted | `docs/05-milestone.md` |
 | **06** | FastAPI + Jinja2/HTMX Web UI + Charts | active next | `docs/06-milestone.md` |
+
+Milestone 06 starts with the review gate in `docs/06-ui-design.md`. Do not implement routes,
+templates, or CSS until the wireframe is accepted or revised.
 
 ---
 

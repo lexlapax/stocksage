@@ -28,6 +28,7 @@ All notable changes to StockSage are tracked here.
 - User/request tests covering default user creation, username reuse, `--userid`, shared analysis reuse, queue attribution, and migration backfill.
 - Ruff linting and formatting checks configured in `pyproject.toml`.
 - Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, M05 user identity/request history, and M06 web UI/charts.
+- M06 UI wireframe and reusable building-block design spec for review before implementation.
 - Focused docs for local setup/CLI usage and development workflow.
 
 ### Changed

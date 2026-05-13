@@ -29,12 +29,13 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
 | M04 details | [docs/04-milestone.md](docs/04-milestone.md) |
 | M05 details | [docs/05-milestone.md](docs/05-milestone.md) |
 | M06 details | [docs/06-milestone.md](docs/06-milestone.md) |
+| M06 UI wireframe | [docs/06-ui-design.md](docs/06-ui-design.md) |
 
 ## Next Steps
 
-Move into Milestone 06:
+Move into Milestone 06 after the UI wireframe is accepted:
 
-1. Build the local FastAPI app foundation.
-2. Add Jinja2/HTMX pages for history, queue, leaderboard, model performance, and ticker summaries.
-3. Surface M05 user-scoped request history without duplicating canonical analyses.
+1. Review and adjust the M06 wireframe.
+2. Build the local FastAPI app foundation.
+3. Add Jinja2/HTMX pages for history, queue, leaderboard, model performance, and ticker summaries.
 4. Add charts for alpha-aware trends and model/ticker performance.
