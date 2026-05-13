@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{{ view.analysis.ticker }} report · StockSage{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow"><a href="/ticker/{{ view.analysis.ticker }}">← {{ view.analysis.ticker }}</a></p>
+    <h1>{{ view.analysis.ticker }} report</h1>
+    <p class="lede">{{ view.analysis.trade_date }} · {{ view.analysis.rating or "No rating" }}</p>
+  </div>
+</section>
+
+{% if view.outcome %}
+<section class="outcome-block {% if view.outcome.alpha_return >= 0 %}positive-border{% else %}negative-border{% endif %}">
+  <strong>{% if view.outcome.beat_market %}Beat market{% else %}Missed market{% endif %}</strong>
+  <span>Stock return {{ "%+.1f%%"|format(view.outcome.raw_return * 100) }}</span>
+  <span>SPY {{ "%+.1f%%"|format(view.outcome.spy_return * 100) }}</span>
+  <span>Alpha {{ "%+.1f%%"|format(view.outcome.alpha_return * 100) }}</span>
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Summary</h2>
+  </div>
+  <p>{{ view.summary or "No summary was stored for this report." }}</p>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Investment thesis</h2>
+  </div>
+  <p>{{ view.investment_thesis or "No thesis was stored for this report." }}</p>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Evidence</h2>
+    <p>T03 will turn these sections into tabs.</p>
+  </div>
+  <div class="evidence-grid">
+    {% for name, text in view.evidence.items() %}
+    <article>
+      <h3>{{ name|title }}</h3>
+      <p>{{ text or "No evidence stored." }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<p class="disclaimer">StockSage is a research aid, not financial advice.</p>
+{% endblock %}

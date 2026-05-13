@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ view.ticker }} · StockSage{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow"><a href="/">← Research</a></p>
+    <h1>{{ view.ticker }} intelligence</h1>
+    <p class="lede">Track record and report history for {{ view.ticker }}.</p>
+  </div>
+  <a class="button primary" href="#new-analysis">+ Analyze {{ view.ticker }}</a>
+</section>
+
+{% if view.summary %}
+<section class="metric-grid">
+  <article class="metric">
+    <span>Total analyses</span>
+    <strong>{{ view.summary.total_analyses }}</strong>
+  </article>
+  <article class="metric">
+    <span>Results checked</span>
+    <strong>{{ view.summary.resolved_count }}</strong>
+  </article>
+  <article class="metric">
+    <span>Hit rate</span>
+    <strong>{{ "%.0f%%"|format(view.summary.hit_rate * 100) }}</strong>
+  </article>
+  <article class="metric">
+    <span>Avg alpha</span>
+    <strong>{{ "%+.1f%%"|format(view.summary.avg_alpha_return * 100) }}</strong>
+  </article>
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Research history</h2>
+    <p>T03 will add charts and richer sorting here.</p>
+  </div>
+  {% if view.history %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Rating</th>
+          <th>Status</th>
+          <th>Alpha</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in view.history %}
+        <tr>
+          <td>{{ row.trade_date }}</td>
+          <td>{{ row.rating or "-" }}</td>
+          <td>{{ row.status|title }}</td>
+          <td>
+            {% if row.outcome %}
+            <span class="{% if row.outcome.alpha_return >= 0 %}positive{% else %}negative{% endif %}">
+              {{ "%+.1f%%"|format(row.outcome.alpha_return * 100) }}
+            </span>
+            {% else %}
+            <span class="muted">Pending</span>
+            {% endif %}
+          </td>
+          <td><a href="/analysis/{{ row.id }}">View report →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No reports for {{ view.ticker }}</h3>
+    <p>Use + Analyze {{ view.ticker }} to create the first report.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

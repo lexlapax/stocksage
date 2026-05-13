@@ -43,11 +43,11 @@ def test_research_landing_returns_system_summary(db, completed_analysis):
     response = _client(db).get("/")
 
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["page"] == "Research"
-    assert payload["summary"]["stocks_analyzed"] == 1
-    assert payload["tickers"][0]["ticker"] == "AAPL"
-    assert payload["tickers"][0]["avg_alpha_return"] == 0.02
+    assert "text/html" in response.headers["content-type"]
+    assert "StockSage" in response.text
+    assert "Research" in response.text
+    assert "AAPL" in response.text
+    assert "+2.0%" in response.text
 
 
 def test_ticker_and_analysis_routes(db, completed_analysis):
@@ -68,12 +68,12 @@ def test_ticker_and_analysis_routes(db, completed_analysis):
     report = client.get(f"/analysis/{completed_analysis.id}")
 
     assert ticker.status_code == 200
-    assert ticker.json()["summary"]["ticker"] == "AAPL"
-    assert ticker.json()["history"][0]["id"] == completed_analysis.id
+    assert "AAPL intelligence" in ticker.text
+    assert "View report" in ticker.text
     assert report.status_code == 200
-    assert report.json()["page"] == "Analysis Report"
-    assert report.json()["outcome"]["beat_market"] is True
-    assert report.json()["evidence"]["market"] == "Market report text."
+    assert "AAPL report" in report.text
+    assert "Beat market" in report.text
+    assert "Market report text." in report.text
 
 
 def test_workspace_route_is_user_scoped(db, completed_analysis):
@@ -106,10 +106,9 @@ def test_workspace_route_is_user_scoped(db, completed_analysis):
     response = _client(db).get("/workspace?user=alice")
 
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["user"]["username"] == "alice"
-    assert [row["ticker"] for row in payload["submissions"]] == ["AAPL"]
-    assert payload["has_active_work"] is False
+    assert "Showing submissions for alice" in response.text
+    assert "AAPL" in response.text
+    assert "MSFT" not in response.text
 
 
 def test_submit_analysis_creates_queue_and_request_then_redirects(db):
@@ -144,7 +143,6 @@ def test_queue_status_route_lists_jobs(db):
     response = _client(db).get("/queue")
 
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["page"] == "Queue Status"
-    assert payload["admin_only"] is True
-    assert payload["jobs"][0]["ticker"] == "AAPL"
+    assert "Queue status" in response.text
+    assert "AAPL" in response.text
+    assert "Queued" in response.text

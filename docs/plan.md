@@ -221,7 +221,8 @@ stocksage/
 │   ├── routes/
 │   │   └── web.py             ← Research, Workspace, Analysis, Queue routes
 ├── web/
-│   └── templates/             ← Jinja2 HTML (Milestone 06)
+│   ├── templates/             ← Jinja2 app shell and page templates
+│   └── static/                ← CSS and future lightweight browser assets
 ├── alembic/
 │   ├── env.py
 │   └── versions/

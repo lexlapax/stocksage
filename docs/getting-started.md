@@ -110,8 +110,8 @@ uv run stocksage queue retry --failed
 
 ## Web App
 
-Milestone 06 serves the browser UI through FastAPI. The current T01 foundation exposes the accepted
-route map with JSON responses while T02 templates are still pending.
+Milestone 06 serves the browser UI through FastAPI. T02 adds the shared Jinja2 shell, top
+navigation, and initial server-rendered pages; deeper page behavior and charts continue in T03-T05.
 
 ```bash
 uv run alembic upgrade head

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}StockSage{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">StockSage</a>
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="nav-link {% if active_nav == 'research' %}active{% endif %}" href="/">Research</a>
+        <a class="nav-link {% if active_nav == 'workspace' %}active{% endif %}" href="/workspace">My Workspace</a>
+      </nav>
+      <div class="top-actions">
+        <span class="user-pill">{{ current_user.username|e }} ▾</span>
+        <a class="button primary" href="#new-analysis">+ Analyze</a>
+      </div>
+    </header>
+
+    <main class="page">
+      {% block content %}{% endblock %}
+    </main>
+
+    <section id="new-analysis" class="modal-anchor" aria-label="New analysis form">
+      <div class="modal-shell">
+        <div class="modal-header">
+          <h2>Analyze a stock</h2>
+          <a class="icon-link" href="#" aria-label="Close">×</a>
+        </div>
+        <form class="form-grid" method="post" action="/analysis">
+          <label>
+            <span>Ticker</span>
+            <input name="ticker" placeholder="AAPL" maxlength="16" required>
+          </label>
+          <label>
+            <span>Analysis date</span>
+            <input name="trade_date" type="date">
+          </label>
+          <label>
+            <span>Run as</span>
+            <input name="user" value="{{ current_user.username|e }}">
+          </label>
+          <div class="form-actions">
+            <button class="button primary" type="submit">Submit</button>
+            <a class="button subtle" href="#">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </section>
+  </body>
+</html>

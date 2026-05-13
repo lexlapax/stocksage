@@ -23,6 +23,7 @@ All notable changes to StockSage are tracked here.
 - Per-user `analysis_requests` history over shared canonical analyses, including queued work, reused analyses, failures, and migration backfill.
 - CLI attribution for `analyze`, `queue add`, and `queue add-batch`, plus user-scoped `list` and `queue list` filters.
 - FastAPI app factory, DB session dependency, T01 route map, and route tests for Research, Workspace, Analysis Report, Queue Status, New Analysis POST, and health.
+- Jinja2 app shell, top navigation, initial Research/Workspace/Ticker/Report/Queue templates, shared CSS, and HTML route tests.
 - Shared `core/submissions.py` helper for web submissions over the same canonical analysis and request-history model.
 - Unit and CLI integration tests covering analyzer parsing, ORM relationships, outcome resolution, trend analytics, and forced reruns.
 - Memory sync tests covering pending-entry resolution, fallback decision rendering, and idempotency.

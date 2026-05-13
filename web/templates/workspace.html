@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}My Workspace · StockSage{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">User view</p>
+    <h1>My Workspace</h1>
+    <p class="lede">Showing submissions for {{ view.user.username|e }}.</p>
+  </div>
+  {% if view.has_active_work %}
+  <a class="status-link" href="/queue">View running work →</a>
+  {% endif %}
+</section>
+
+{% if view.has_active_work %}
+<p class="live-note">Some analyses are still running. This table will gain live refresh in T04.</p>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>My submissions</h2>
+    <p>Your personal request history over shared research reports.</p>
+  </div>
+  {% if view.submissions %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Source</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in view.submissions %}
+        <tr>
+          <td>{{ row.ticker }}</td>
+          <td>{{ row.trade_date }}</td>
+          <td><span class="badge status-{{ row.status }}">{{ row.status|replace("_", " ")|title }}</span></td>
+          <td>{{ row.source }}</td>
+          <td>
+            {% if row.analysis_id %}
+            <a href="/analysis/{{ row.analysis_id }}">View report →</a>
+            {% elif row.status == "failed" %}
+            <span class="muted">Retry in T04</span>
+            {% else %}
+            <span class="muted">Waiting</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No submissions yet</h3>
+    <p>Use + Analyze to request your first StockSage report.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

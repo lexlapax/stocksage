@@ -11,7 +11,8 @@ with useful M03 alpha-aware metrics and M05 user-scoped history.
 
 ## Status
 
-**In progress.** T00 design is accepted and T01 FastAPI route foundation is implemented.
+**In progress.** T00 design, T01 route foundation, and T02 Jinja2 layout/navigation are
+implemented.
 
 ---
 
@@ -49,12 +50,15 @@ with Jinja2 templates on the same route map.
 
 ### T02 · Jinja2 layout and navigation
 
-- [ ] Create a base template with a top navigation bar: Research | My Workspace | [user ▾] | [+ Analyze].
+- [x] Create a base template with a top navigation bar: Research | My Workspace | [user ▾] | [+ Analyze].
   No persistent left sidebar.
-- [ ] Use server-rendered pages as the primary experience.
-- [ ] Use HTMX only for targeted partial updates: My Workspace status polling (while rows are
+- [x] Use server-rendered pages as the primary experience.
+- [x] Use HTMX only for targeted partial updates: My Workspace status polling (while rows are
   queued/running), sort/filter changes on the Research table, and retry actions.
-- [ ] Keep the UI dense, clear, and operational rather than marketing-style.
+- [x] Keep the UI dense, clear, and operational rather than marketing-style.
+
+T02 adds the shared app shell, top navigation, initial page templates, static CSS, and HTML route
+tests. HTMX is loaded in the shell but only targeted interactions will be added in later tasks.
 
 ### T03 · Analysis and ticker pages
 
