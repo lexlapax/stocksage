@@ -159,6 +159,10 @@ a:hover {
   gap: 10px;
 }
 
+.workspace-filters {
+  margin-bottom: 16px;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -357,25 +361,128 @@ tbody tr:hover {
   border-color: #fda4af;
 }
 
-.evidence-grid {
+.bar-chart {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  min-height: 220px;
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.bar-item {
+  display: grid;
+  grid-template-rows: auto 150px auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 48px;
+  text-align: center;
+}
+
+.bar-value,
+.bar-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bar-track.vertical {
+  position: relative;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  height: 150px;
+  border-bottom: 2px solid var(--slate);
+}
+
+.bar {
+  display: block;
+  width: 28px;
+  min-height: 8px;
+  border-radius: 4px 4px 0 0;
+}
+
+.bar.positive,
+.calibration-bar.positive {
+  background: var(--green);
+}
+
+.bar.negative,
+.calibration-bar.negative {
+  background: var(--rose);
+}
+
+.calibration-chart {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.calibration-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 72px;
+  gap: 12px;
+  align-items: center;
+}
+
+.calibration-label {
+  color: var(--slate);
+  font-weight: 800;
+}
+
+.calibration-track {
+  display: block;
+  height: 18px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.calibration-bar {
+  display: block;
+  height: 100%;
+  min-width: 8px;
+}
+
+.evidence-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.evidence-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--slate);
+  font-weight: 800;
+}
+
+.evidence-panels {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   padding: 18px;
 }
 
-.evidence-grid article {
+.evidence-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
 }
 
-.evidence-grid h3,
-.evidence-grid p {
+.evidence-panel h3,
+.evidence-panel p {
   margin: 0;
 }
 
-.evidence-grid p {
+.evidence-panel p {
   margin-top: 8px;
   color: var(--slate);
 }
@@ -460,7 +567,11 @@ tbody tr:hover {
   }
 
   .metric-grid,
-  .evidence-grid {
+  .evidence-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .calibration-row {
     grid-template-columns: 1fr;
   }
 }

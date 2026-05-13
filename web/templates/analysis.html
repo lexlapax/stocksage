@@ -34,14 +34,19 @@
   <p>{{ view.investment_thesis or "No thesis was stored for this report." }}</p>
 </section>
 
-<section class="panel">
+<section class="panel evidence-panel-shell">
   <div class="panel-header">
     <h2>Evidence</h2>
-    <p>T03 will turn these sections into tabs.</p>
+    <p>Open the research evidence that matters most.</p>
   </div>
-  <div class="evidence-grid">
+  <nav class="evidence-tabs" aria-label="Evidence sections">
     {% for name, text in view.evidence.items() %}
-    <article>
+    <a href="#evidence-{{ name }}">{{ name|title }}</a>
+    {% endfor %}
+  </nav>
+  <div class="evidence-panels">
+    {% for name, text in view.evidence.items() %}
+    <article id="evidence-{{ name }}" class="evidence-panel">
       <h3>{{ name|title }}</h3>
       <p>{{ text or "No evidence stored." }}</p>
     </article>

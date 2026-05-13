@@ -1,0 +1,48 @@
+<div
+  id="workspace-submissions"
+  {% if view.has_active_work %}
+  hx-get="/workspace/partials/submissions?user={{ view.user.username|urlencode }}"
+  hx-trigger="every 5s"
+  hx-swap="outerHTML"
+  {% endif %}
+>
+  {% if view.submissions %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Source</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in view.submissions %}
+        <tr>
+          <td>{{ row.ticker }}</td>
+          <td>{{ row.trade_date }}</td>
+          <td><span class="badge status-{{ row.status }}">{{ row.status|replace("_", " ")|title }}</span></td>
+          <td>{{ row.source }}</td>
+          <td>
+            {% if row.analysis_id %}
+            <a href="/analysis/{{ row.analysis_id }}">View report →</a>
+            {% elif row.status == "failed" %}
+            <span class="muted">Retry in T04</span>
+            {% else %}
+            <span class="muted">Waiting</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No submissions yet</h3>
+    <p>Use + Analyze to request your first StockSage report.</p>
+  </div>
+  {% endif %}
+</div>

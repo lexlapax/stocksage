@@ -28,6 +28,24 @@
         {% endfor %}
       </select>
     </label>
+    <label>
+      <span>Rating</span>
+      <select name="rating">
+        <option value="" {% if not view.filters.rating %}selected{% endif %}>Any</option>
+        {% for rating in ["Buy", "Overweight", "Hold", "Underweight", "Sell"] %}
+        <option value="{{ rating }}" {% if view.filters.rating == rating %}selected{% endif %}>{{ rating }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Date range</span>
+      <select name="date_range">
+        <option value="30" {% if view.filters.date_range == "30" %}selected{% endif %}>Last 30 days</option>
+        <option value="90" {% if view.filters.date_range == "90" %}selected{% endif %}>Last 90 days</option>
+        <option value="180" {% if view.filters.date_range == "180" %}selected{% endif %}>Last 180 days</option>
+        <option value="all" {% if view.filters.date_range == "all" %}selected{% endif %}>All time</option>
+      </select>
+    </label>
     <button class="button" type="submit">Apply</button>
   </form>
 </section>
@@ -63,6 +81,7 @@
         <tr>
           <th>Ticker</th>
           <th>Last rating</th>
+          <th>Last analyzed</th>
           <th>Calls</th>
           <th>Hit rate</th>
           <th>Avg alpha</th>
@@ -74,6 +93,7 @@
         <tr>
           <td><a class="strong-link" href="/ticker/{{ row.ticker }}">{{ row.ticker }}</a></td>
           <td>{{ row.last_rating or "-" }}</td>
+          <td>{{ row.last_analyzed }}</td>
           <td>{{ row.resolved_count }}</td>
           <td>{{ "%.0f%%"|format(row.hit_rate * 100) }}</td>
           <td class="{% if row.avg_alpha_return >= 0 %}positive{% else %}negative{% endif %}">

@@ -11,7 +11,7 @@ with useful M03 alpha-aware metrics and M05 user-scoped history.
 
 ## Status
 
-**In progress.** T00 design, T01 route foundation, and T02 Jinja2 layout/navigation are
+**In progress.** T00 design, T01 route foundation, T02 layout/navigation, and T03 core pages are
 implemented.
 
 ---
@@ -62,14 +62,17 @@ tests. HTMX is loaded in the shell but only targeted interactions will be added 
 
 ### T03 · Analysis and ticker pages
 
-- [ ] Research landing: sortable/filterable system-wide stock table (sort by alpha, hit rate,
+- [x] Research landing: sortable/filterable system-wide stock table (sort by alpha, hit rate,
   recency, ticker; filter by rating, min results, date range); inline sparkline per ticker.
-- [ ] My Workspace: user-scoped submission list with status badges; HTMX polling while active.
-- [ ] Ticker Intelligence page: metric tiles, alpha-over-time bar chart, rating calibration
+- [x] My Workspace: user-scoped submission list with status badges; HTMX polling while active.
+- [x] Ticker Intelligence page: metric tiles, alpha-over-time bar chart, rating calibration
   horizontal bar chart (hidden when fewer than 3 resolved outcomes), analysis history table.
-- [ ] Analysis Report page: outcome block (stock return, SPY, alpha, beat/missed) shown only
+- [x] Analysis Report page: outcome block (stock return, SPY, alpha, beat/missed) shown only
   when outcome is resolved; summary, thesis, and tabbed evidence sections.
-- [ ] Include raw return and alpha return side by side in the outcome block.
+- [x] Include raw return and alpha return side by side in the outcome block.
+
+T03 uses server-rendered chart sections and data structures. T05 will replace/enhance the chart
+rendering with Chart.js without changing the page hierarchy.
 
 ### T04 · Queue controls
 

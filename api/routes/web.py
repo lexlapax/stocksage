@@ -15,6 +15,8 @@ router = APIRouter()
 
 SORT_OPTIONS = ("best_alpha", "hit_rate", "most_analyses", "recent", "ticker")
 QUEUE_STATUS_OPTIONS = ("queued", "running", "completed", "failed")
+DATE_RANGE_OPTIONS = ("30", "90", "180", "all")
+REQUEST_STATUS_OPTIONS = ("queued", "running", "completed", "failed", "reused")
 
 
 @router.get("/health", tags=["system"])
@@ -29,10 +31,19 @@ def research_landing(
     sort: str = Query("best_alpha"),
     rating: str | None = Query(None),
     min_results: int = Query(1, ge=1),
+    date_range: str = Query("all"),
 ):
     if sort not in SORT_OPTIONS:
         raise HTTPException(status_code=400, detail=f"Unsupported sort option: {sort}")
-    view = services.research_landing(db, sort=sort, rating=rating, min_results=min_results)
+    if date_range not in DATE_RANGE_OPTIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported date range: {date_range}")
+    view = services.research_landing(
+        db,
+        sort=sort,
+        rating=rating,
+        min_results=min_results,
+        date_range=date_range,
+    )
     return _template_response(request, "research.html", view, active_nav="research")
 
 
@@ -56,9 +67,19 @@ def workspace(
     db: DbSession,
     user: str | None = Query(None),
     userid: int | None = Query(None),
+    ticker: str | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
 ):
+    if status_filter is not None and status_filter not in REQUEST_STATUS_OPTIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported request status: {status_filter}")
     try:
-        view = services.workspace(db, username=user, user_id=userid)
+        view = services.workspace(
+            db,
+            username=user,
+            user_id=userid,
+            ticker=ticker,
+            status=status_filter,
+        )
     except UserResolutionError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _template_response(
@@ -67,6 +88,34 @@ def workspace(
         view,
         active_nav="workspace",
         current_user=view["user"],
+    )
+
+
+@router.get("/workspace/partials/submissions", response_class=HTMLResponse, tags=["workspace"])
+def workspace_submissions_partial(
+    request: Request,
+    db: DbSession,
+    user: str | None = Query(None),
+    userid: int | None = Query(None),
+    ticker: str | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
+):
+    if status_filter is not None and status_filter not in REQUEST_STATUS_OPTIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported request status: {status_filter}")
+    try:
+        view = services.workspace(
+            db,
+            username=user,
+            user_id=userid,
+            ticker=ticker,
+            status=status_filter,
+        )
+    except UserResolutionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/workspace_submissions.html",
+        context={"view": view},
     )
 
 

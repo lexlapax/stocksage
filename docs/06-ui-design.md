@@ -380,5 +380,6 @@ a `<script>` tag.
 ## Implementation Status
 
 This design was reviewed and accepted before T01 began. T02 implements the shared app shell and
-initial server-rendered page templates. Keep adjusting this document when UX decisions change, and
-keep route/template implementation aligned with it.
+initial server-rendered page templates; T03 fills in Research, Workspace, Ticker Intelligence, and
+Analysis Report content. Keep adjusting this document when UX decisions change, and keep
+route/template implementation aligned with it.

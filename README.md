@@ -35,7 +35,7 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
 
 Move into Milestone 06 after the UI wireframe is accepted:
 
-1. Fill out Research, My Workspace, ticker intelligence, report, and queue pages.
-2. Add user submission and retry controls.
-3. Add charts for alpha-aware trends and ticker performance.
+1. Add user submission and retry controls.
+2. Add Chart.js visualizations for alpha-aware trends and ticker performance.
+3. Finish local run docs and template coverage.
 4. Keep route tests, template tests, Ruff, and pytest green as the UI fills in.

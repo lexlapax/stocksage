@@ -35,8 +35,58 @@
 
 <section class="panel">
   <div class="panel-header">
+    <h2>Alpha vs market over time</h2>
+    <p>Each bar is one resolved analysis. Green beat the market; rose missed.</p>
+  </div>
+  {% if view.alpha_bars %}
+  <div class="bar-chart" aria-label="Alpha vs market over time">
+    {% for point in view.alpha_bars %}
+    <div class="bar-item">
+      <span class="bar-value">{{ "%+.1f%%"|format(point.alpha_return * 100) }}</span>
+      <div class="bar-track vertical">
+        <span class="bar {{ point.direction }}" style="height: {{ point.height_pct }}%"></span>
+      </div>
+      <span class="bar-label">{{ point.date[5:] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No resolved outcomes yet</h3>
+    <p>Alpha bars appear after StockSage checks outcomes.</p>
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>How each rating has performed for {{ view.ticker }}</h2>
+    <p>Average alpha by rating label.</p>
+  </div>
+  {% if view.show_rating_calibration and view.rating_calibration %}
+  <div class="calibration-chart">
+    {% for row in view.rating_calibration %}
+    <div class="calibration-row">
+      <span class="calibration-label">{{ row.rating }}</span>
+      <span class="calibration-track">
+        <span class="calibration-bar {{ row.direction }}" style="width: {{ row.width_pct }}%"></span>
+      </span>
+      <strong>{{ "%+.1f%%"|format(row.avg_alpha_return * 100) }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>Not enough data yet</h3>
+    <p>Rating calibration appears after at least three resolved outcomes for this ticker.</p>
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header">
     <h2>Research history</h2>
-    <p>T03 will add charts and richer sorting here.</p>
+    <p>Newest reports first.</p>
   </div>
   {% if view.history %}
   <div class="table-wrap">
@@ -47,6 +97,7 @@
           <th>Rating</th>
           <th>Status</th>
           <th>Alpha</th>
+          <th>Outcome</th>
           <th></th>
         </tr>
       </thead>
@@ -65,6 +116,7 @@
             <span class="muted">Pending</span>
             {% endif %}
           </td>
+          <td>{{ row.outcome_label }}</td>
           <td><a href="/analysis/{{ row.id }}">View report →</a></td>
         </tr>
         {% endfor %}

@@ -63,7 +63,7 @@ Detailed task lists and acceptance criteria:
 - `docs/05-milestone.md` — accepted user identity + request history work
 - `docs/06-milestone.md` — planned web UI + charts work; current focus
 
-**Next action:** Continue Milestone 06 with T03 analysis and ticker pages:
+**Next action:** Continue Milestone 06 with T04 queue controls:
 ```bash
 uv run ruff check .
 uv run ruff format --check .
