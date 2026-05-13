@@ -4,7 +4,7 @@ StockSage wraps the [TradingAgents](https://github.com/TauricResearch/TradingAge
 multi-agent LLM framework with persistent storage, outcome tracking, and trend analytics.
 It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared analysis database.
 
-**Current release:** `0.0.1`
+**Current release:** `0.0.2`
 
 ## Where We Are
 
@@ -20,8 +20,8 @@ It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared ana
   Chart.js visualizations, local run docs, and route/template tests are complete.
 - **M07 accepted:** hardening and polish close the post-release gaps found after comparing the
   accepted M01-M06 specs against the implementation.
-- **M08 ready:** UI clarity, guided help, browser-based queue operation, and quick re-analysis are
-  scoped for implementation.
+- **M08 accepted:** contextual help, browser-based queue running, and quick re-analysis actions
+  are complete.
 
 ## Project Docs
 
@@ -42,4 +42,4 @@ It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared ana
 
 ## Next Steps
 
-Implement M08: contextual help, browser queue running, and quick re-analysis actions.
+Begin the next milestone from fresh user feedback after the `0.0.2` M08 release.

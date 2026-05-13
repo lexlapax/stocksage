@@ -4,10 +4,28 @@ All notable changes to StockSage are tracked here.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.0.2] - 2026-05-13
+
+Second local release. This release accepts Milestone 08: contextual help, browser-based queue
+operation, persisted queue-run state, and quick re-analysis actions for non-technical users.
+
 ### Added
 
-- M08 implementation-ready plan for contextual help, browser controls for running queued LLM
-  analyses, and quick re-analysis actions from analyzed tickers.
+- Contextual help popovers for research metrics, charts, ticker intelligence, analysis outcomes,
+  and queue-running terminology.
+- Browser Queue Status runner controls for `Run next 1`, `Run next 5`, `Run all queued`,
+  `Stop after current job`, polling runner state, and retrying failed queue jobs.
+- Persisted `queue_runs` state with Alembic migration, ORM model, lifecycle helpers, duplicate
+  active-run protection, stop requests, and stale running-thread blocking.
+- Quick re-analysis actions that open the existing Analyze modal with ticker and today's date
+  prefilled.
+
+### Changed
+
+- Getting started docs now distinguish queueing work from running queued LLM analyses in the
+  browser and document the honest stop-after-current-job behavior.
 
 ## [0.0.1] - 2026-05-12
 

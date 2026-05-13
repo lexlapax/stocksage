@@ -3,7 +3,7 @@
 ## Goal
 
 Make StockSage understandable and operable for non-technical users without requiring a terminal.
-M08 turns the post-`0.0.1` manual-testing findings into an implementation-ready scope:
+M08 turns the post-`0.0.1` manual-testing findings into completed product behavior:
 
 - Explain technical chart and finance terms in the UI.
 - Let users run queued LLM analyses from the browser.
@@ -11,8 +11,8 @@ M08 turns the post-`0.0.1` manual-testing findings into an implementation-ready 
 
 ## Status
 
-**Ready for implementation.** Scope is intentionally limited to explanatory and operational UI; no
-analytics semantics, authentication, deployment, or multi-user permission model changes.
+**Accepted in release `0.0.2`.** Contextual help, browser queue running, and quick re-analysis
+actions are implemented with route/service/unit coverage and the full quality gate passing.
 
 ---
 
@@ -192,73 +192,73 @@ Preferred implementation:
 
 ### T00 · Finalize M08 UI primitives
 
-- [ ] Add reusable help macro/component.
-- [ ] Add shared CSS for inline help and queue runner controls.
-- [ ] Decide whether help copy lives in template macro arguments or a Python dictionary.
-- [ ] Add test helpers for asserting accessible help controls.
+- [x] Add reusable help macro/component.
+- [x] Add shared CSS for inline help and queue runner controls.
+- [x] Decide whether help copy lives in template macro arguments or a Python dictionary.
+- [x] Add test helpers for asserting accessible help controls.
 
 ### T01 · Add popup help for technical chart and finance terms
 
-- [ ] Add help affordances for the initial term inventory above.
-- [ ] Explain each term in plain language for a non-technical user.
-- [ ] Cover Research, Ticker Intelligence, Analysis Report, and Queue Status where relevant.
-- [ ] Make help accessible by mouse, keyboard, and touch.
-- [ ] Keep default UI quiet and avoid crowding charts/tables.
-- [ ] Add route/template tests for representative help controls.
+- [x] Add help affordances for the initial term inventory above.
+- [x] Explain each term in plain language for a non-technical user.
+- [x] Cover Research, Ticker Intelligence, Analysis Report, and Queue Status where relevant.
+- [x] Make help accessible by mouse, keyboard, and touch.
+- [x] Keep default UI quiet and avoid crowding charts/tables.
+- [x] Add route/template tests for representative help controls.
 
 ### T02 · Add persisted queue run state
 
-- [ ] Add Alembic migration for `queue_runs`.
-- [ ] Add ORM model and core helper module for queue run lifecycle.
-- [ ] Enforce one active run at a time.
-- [ ] Add stop-request state transitions.
-- [ ] Add tests for run creation, duplicate protection, state updates, and stop request persistence.
+- [x] Add Alembic migration for `queue_runs`.
+- [x] Add ORM model and core helper module for queue run lifecycle.
+- [x] Enforce one active run at a time.
+- [x] Add stop-request state transitions.
+- [x] Add tests for run creation, duplicate protection, state updates, and stop request persistence.
 
 ### T03 · Add browser queue runner controls
 
-- [ ] Add Queue Status runner panel with `Run next 1`, `Run next 5`, `Run all queued`, and
+- [x] Add Queue Status runner panel with `Run next 1`, `Run next 5`, `Run all queued`, and
   `Stop after current job`.
-- [ ] Add FastAPI routes/partials for starting, stopping, and polling runner state.
-- [ ] Run jobs in a background thread using existing worker job processing.
-- [ ] Update job and runner partial polling while a run is active.
-- [ ] Add failed-job retry and optional retry-all-failed controls.
-- [ ] Add route/service tests using stubbed analyzer/worker behavior; no live LLM/network calls.
+- [x] Add FastAPI routes/partials for starting, stopping, and polling runner state.
+- [x] Run jobs in a background thread using existing worker job processing.
+- [x] Update job and runner partial polling while a run is active.
+- [x] Add failed-job retry and optional retry-all-failed controls.
+- [x] Add route/service tests using stubbed analyzer/worker behavior; no live LLM/network calls.
 
 ### T04 · Add quick re-analysis actions
 
-- [ ] Add `Analyze again` or `Queue today` action to Research table rows.
-- [ ] Add `Analyze today` action to Ticker Intelligence.
-- [ ] Reuse and pre-fill the existing `Analyze a stock` modal.
-- [ ] Trigger reuse detection after prefill.
-- [ ] Preserve ticker navigation and existing submission behavior.
-- [ ] Add tests for action presence, prefill hooks, and reuse-note compatibility.
+- [x] Add `Analyze again` or `Queue today` action to Research table rows.
+- [x] Add `Analyze today` action to Ticker Intelligence.
+- [x] Reuse and pre-fill the existing `Analyze a stock` modal.
+- [x] Trigger reuse detection after prefill.
+- [x] Preserve ticker navigation and existing submission behavior.
+- [x] Add tests for action presence, prefill hooks, and reuse-note compatibility.
 
 ### T05 · Documentation and verification
 
-- [ ] Update `README.md`, `AGENTS.md`, `CHANGELOG.md`, `docs/plan.md`, and
+- [x] Update `README.md`, `AGENTS.md`, `CHANGELOG.md`, `docs/plan.md`, and
   `docs/getting-started.md` for M08 behavior.
-- [ ] Document the difference between queueing work and running queued LLM work.
-- [ ] Document stop semantics as "after current job."
-- [ ] Run stale-reference scans for old M08 collecting/planning wording.
-- [ ] Run full quality gate.
+- [x] Document the difference between queueing work and running queued LLM work.
+- [x] Document stop semantics as "after current job."
+- [x] Run stale-reference scans for old M08 collecting/planning wording.
+- [x] Run full quality gate.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] A non-technical user can discover what each chart/metric means in the UI.
-- [ ] Help content appears near the term being explained and can be dismissed.
-- [ ] Help controls work with keyboard focus and screen-reader labels.
-- [ ] Mobile layouts do not overlap or hide help content.
-- [ ] A non-technical user can queue an analysis and run it with LLMs from the web UI.
-- [ ] Queue Status clearly shows runner state and job progress.
-- [ ] Pause/stop controls have honest semantics and do not corrupt in-flight analyses.
-- [ ] The web UI prevents duplicate queue runners from starting accidentally.
-- [ ] A user can start another analysis for an already analyzed ticker without retyping the ticker.
-- [ ] Quick re-analysis defaults to today's date and still warns when work would be reused.
-- [ ] No tests make live LLM or network calls.
-- [ ] `node --check web/static/charts.js`, `uv run ruff check .`,
-  `uv run ruff format --check .`, and `uv run pytest` pass.
+- [x] A non-technical user can discover what each chart/metric means in the UI.
+- [x] Help content appears near the term being explained and can be dismissed.
+- [x] Help controls work with keyboard focus and screen-reader labels.
+- [x] Mobile layouts do not overlap or hide help content.
+- [x] A non-technical user can queue an analysis and run it with LLMs from the web UI.
+- [x] Queue Status clearly shows runner state and job progress.
+- [x] Pause/stop controls have honest semantics and do not corrupt in-flight analyses.
+- [x] The web UI prevents duplicate queue runners from starting accidentally.
+- [x] A user can start another analysis for an already analyzed ticker without retyping the ticker.
+- [x] Quick re-analysis defaults to today's date and still warns when work would be reused.
+- [x] No tests make live LLM or network calls.
+- [x] `node --check web/static/app.js`, `node --check web/static/charts.js`,
+  `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest` pass.
 
 ## Manual Test Plan
 
@@ -276,6 +276,7 @@ Preferred implementation:
 ## Verification Plan
 
 ```bash
+node --check web/static/app.js
 node --check web/static/charts.js
 uv run ruff check .
 uv run ruff format --check .

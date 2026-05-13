@@ -51,7 +51,7 @@ def research_tickers_partial(
     return templates.TemplateResponse(
         request=request,
         name="partials/research_tickers.html",
-        context={"view": view},
+        context={"view": view, "today": date.today().isoformat()},
     )
 
 
@@ -248,6 +248,72 @@ def queue_jobs_partial(
     )
 
 
+@router.get("/queue/partials/runner", response_class=HTMLResponse, tags=["admin"])
+def queue_runner_partial(request: Request, db: DbSession):
+    view = services.queue_status(db)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/queue_runner.html",
+        context={"view": view, "current_user": _current_user_from_request(request)},
+    )
+
+
+@router.post("/queue/run", tags=["admin"])
+def start_queue_runner(
+    request: Request,
+    db: DbSession,
+    limit: Annotated[str, Form()] = "1",
+    user: Annotated[str | None, Form()] = None,
+    userid: Annotated[int | None, Form()] = None,
+):
+    try:
+        services.start_queue_runner(
+            db,
+            requested_limit=_parse_queue_run_limit(limit),
+            username=user,
+            user_id=userid,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except UserResolutionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if _is_htmx(request):
+        view = services.queue_status(db)
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/queue_runner.html",
+            context={"view": view, "current_user": _current_user_from_request(request)},
+        )
+    return RedirectResponse(url="/queue", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/queue/run/stop", tags=["admin"])
+def stop_queue_runner(request: Request, db: DbSession):
+    services.stop_queue_runner(db)
+    if _is_htmx(request):
+        view = services.queue_status(db)
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/queue_runner.html",
+            context={"view": view, "current_user": _current_user_from_request(request)},
+        )
+    return RedirectResponse(url="/queue", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/queue/retry-failed", tags=["admin"])
+def retry_failed_queue_jobs(request: Request, db: DbSession):
+    services.retry_failed_queue_jobs(db)
+    if _is_htmx(request):
+        view = services.queue_status(db)
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/queue_jobs.html",
+            context={"view": view},
+        )
+    return RedirectResponse(url="/queue", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.post("/queue/{queue_id}/retry", tags=["admin"])
 def retry_queue_job(
     request: Request,
@@ -299,6 +365,14 @@ def _current_user_from_request(request: Request) -> dict:
 
 def _is_htmx(request: Request) -> bool:
     return request.headers.get("HX-Request", "").lower() == "true"
+
+
+def _parse_queue_run_limit(value: str) -> int | None:
+    if value == "all":
+        return None
+    if value in {"1", "5"}:
+        return int(value)
+    raise ValueError("Queue run limit must be 1, 5, or all.")
 
 
 def _research_view(

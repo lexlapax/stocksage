@@ -129,6 +129,17 @@ Open:
 Use the `+ Analyze` button to submit one ticker/date at a time. The UI reuses existing shared
 reports when the same ticker/date has already completed or is already queued/running.
 
+Queueing work only creates a pending job. Running queued work starts real LLM/provider calls. Open
+Queue Status to use `Run next 1`, `Run next 5`, or `Run all queued`; use `Stop after current job`
+when you want the runner to finish the in-flight analysis and then stop claiming more jobs.
+
+Research rows include `Analyze again`, and ticker pages include a prefilled analyze action. Both
+reuse the same modal and default to today's date while still checking whether the ticker/date would
+reuse existing work.
+
+Inline help controls (`?`) explain chart and finance terms such as alpha, hit rate, rolling 30-day
+accuracy, and the 50% reference line.
+
 Web requests default to the current OS username. Use the modal's `Run as` field to submit as a
 different local user, or open `/workspace?user=alice` to view another user's request history.
 
@@ -147,5 +158,7 @@ uv run python -m cli.main --help
 - `stocksage queue run` defaults to one concurrent analysis because each job can make live LLM and
   market-data calls. Increase `--max-workers` only when the provider budget and rate limits are
   comfortable.
+- The browser queue runner also uses conservative one-at-a-time processing and stores runner state
+  in `queue_runs` so duplicate starts are prevented.
 - Use `stocksage queue list --status failed` and `stocksage queue retry --failed` to resume failed
   batches without re-creating completed analyses.

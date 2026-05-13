@@ -47,11 +47,15 @@ def test_user_identity_migration_backfills_existing_rows(tmp_path):
             .scalars()
             .all()
         )
+        queue_runs_exists = conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'queue_runs'")
+        ).scalar_one()
 
     assert len(users) == 1
     assert analysis_user == users[0].id
     assert queue_user == users[0].id
     assert request_sources == ["backfill_analysis", "backfill_queue"]
+    assert queue_runs_exists == "queue_runs"
 
 
 def _run_alembic(command: str, revision: str, env: dict[str, str]) -> None:

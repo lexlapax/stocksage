@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/help.html" import term %}
 
 {% block title %}{{ view.analysis.ticker }} report · StockSage{% endblock %}
 
@@ -13,10 +14,22 @@
 
 {% if view.outcome %}
 <section class="outcome-block {% if view.outcome.correct_call %}correct-border{% else %}missed-border{% endif %}">
-  <strong>{% if view.outcome.correct_call %}Correct call{% else %}Missed call{% endif %}</strong>
-  <span>Stock return {{ "%+.1f%%"|format(view.outcome.raw_return * 100) }}</span>
-  <span>SPY {{ "%+.1f%%"|format(view.outcome.spy_return * 100) }}</span>
-  <span>Alpha {{ "%+.1f%%"|format(view.outcome.alpha_return * 100) }}</span>
+  <strong class="label-with-help">
+    {% if view.outcome.correct_call %}Correct call{% else %}Missed call{% endif %}
+    {{ term("Correct call", "A call is correct when its rating direction lines up with alpha. Bullish ratings should beat SPY; bearish ratings should trail SPY.") }}
+  </strong>
+  <span class="label-with-help">
+    Stock return {{ "%+.1f%%"|format(view.outcome.raw_return * 100) }}
+    {{ term("Raw return", "The stock's own percentage return during the holding period.") }}
+  </span>
+  <span class="label-with-help">
+    SPY {{ "%+.1f%%"|format(view.outcome.spy_return * 100) }}
+    {{ term("SPY", "The S&P 500 ETF used here as the market comparison for alpha.") }}
+  </span>
+  <span class="label-with-help">
+    Alpha {{ "%+.1f%%"|format(view.outcome.alpha_return * 100) }}
+    {{ term("Alpha", "Stock return minus SPY return over the same holding period.") }}
+  </span>
 </section>
 {% endif %}
 

@@ -1,0 +1,79 @@
+{% from "macros/help.html" import term %}
+
+<section
+  id="queue-runner"
+  class="panel runner-panel"
+  {% if view.runner.is_active %}
+  hx-get="/queue/partials/runner"
+  hx-trigger="every 5s"
+  hx-swap="outerHTML"
+  {% endif %}
+>
+  <div class="panel-header runner-header">
+    <div>
+      <h2 class="label-with-help">
+        Queue runner
+        {{ term("Live LLM run", "Running the queue starts real analyses. Each job can make provider, network, and LLM calls using your configured keys.") }}
+      </h2>
+      <p>Start queued analyses from the browser, then let the current job finish before stopping.</p>
+    </div>
+    <span class="badge status-{{ view.runner.status }}">{{ view.runner.status_label }}</span>
+  </div>
+  <div class="runner-body">
+    <div class="runner-stats" aria-label="Queue runner stats">
+      <span><strong>{{ view.runner.queued_jobs }}</strong> queued</span>
+      <span><strong>{{ view.runner.attempted }}</strong> attempted</span>
+      <span><strong>{{ view.runner.completed }}</strong> completed</span>
+      <span><strong>{{ view.runner.failed }}</strong> failed</span>
+    </div>
+    {% if view.runner.id %}
+    <p class="muted">
+      Last run requested {{ view.runner.requested_limit_label }}
+      {% if view.runner.started_by %}by {{ view.runner.started_by }}{% endif %}.
+    </p>
+    {% endif %}
+    {% if view.runner.last_error %}
+    <p class="runner-error">{{ view.runner.last_error }}</p>
+    {% endif %}
+    <div class="runner-actions">
+      {% if view.runner.can_stop %}
+      <form
+        method="post"
+        action="/queue/run/stop"
+        hx-post="/queue/run/stop"
+        hx-target="#queue-runner"
+        hx-swap="outerHTML"
+      >
+        <button class="button" type="submit">Stop after current job</button>
+      </form>
+      {% else %}
+      {% for option in [("1", "Run next 1"), ("5", "Run next 5"), ("all", "Run all queued")] %}
+      <form
+        method="post"
+        action="/queue/run"
+        hx-post="/queue/run"
+        hx-target="#queue-runner"
+        hx-swap="outerHTML"
+      >
+        <input type="hidden" name="limit" value="{{ option[0] }}">
+        <input type="hidden" name="user" value="{{ current_user.username|e }}">
+        <button class="button {% if option[0] == '1' %}primary{% endif %}" type="submit" {% if not view.runner.can_start %}disabled{% endif %}>
+          {{ option[1] }}
+        </button>
+      </form>
+      {% endfor %}
+      {% endif %}
+      <form
+        method="post"
+        action="/queue/retry-failed"
+        hx-post="/queue/retry-failed"
+        hx-target="#queue-jobs"
+        hx-swap="outerHTML"
+      >
+        <button class="button subtle" type="submit" {% if not view.runner.failed_jobs %}disabled{% endif %}>
+          Retry failed
+        </button>
+      </form>
+    </div>
+  </div>
+</section>

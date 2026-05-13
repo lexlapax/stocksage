@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/help.html" import term %}
 
 {% block title %}{{ view.ticker }} · StockSage{% endblock %}
 
@@ -9,21 +10,34 @@
     <h1>{{ view.ticker }} intelligence</h1>
     <p class="lede">Track record and report history for {{ view.ticker }}.</p>
   </div>
-  <a class="button primary" href="#new-analysis">+ Analyze {{ view.ticker }}</a>
+  <a
+    class="button primary"
+    href="#new-analysis"
+    data-analysis-ticker="{{ view.ticker }}"
+    data-analysis-date="{{ today }}"
+  >
+    + Analyze {{ view.ticker }}
+  </a>
 </section>
 
 {% if view.summary %}
 <section class="metric-grid">
   <article class="metric">
-    <span>Total analyses</span>
+    <span class="metric-label">Total analyses</span>
     <strong>{{ view.summary.total_analyses }}</strong>
   </article>
   <article class="metric">
-    <span>Results checked</span>
+    <span class="metric-label">
+      Results checked
+      {{ term("Results checked", "Reports whose holding period has passed and whose actual stock and SPY returns have been resolved.") }}
+    </span>
     <strong>{{ view.summary.resolved_count }}</strong>
   </article>
   <article class="metric">
-    <span>Hit rate</span>
+    <span class="metric-label">
+      Hit rate
+      {{ term("Hit rate", "The percent of resolved calls where the rating direction matched alpha for this ticker.") }}
+    </span>
     {% if view.summary.resolved_count %}
     <strong>{{ "%.0f%%"|format(view.summary.hit_rate * 100) }}</strong>
     {% else %}
@@ -31,7 +45,10 @@
     {% endif %}
   </article>
   <article class="metric">
-    <span>Avg alpha</span>
+    <span class="metric-label">
+      Avg alpha
+      {{ term("Average alpha", "The ticker's average return versus SPY across resolved StockSage calls.") }}
+    </span>
     {% if view.summary.resolved_count %}
     <strong>{{ "%+.1f%%"|format(view.summary.avg_alpha_return * 100) }}</strong>
     {% else %}
@@ -43,8 +60,17 @@
 
 <section class="panel">
   <div class="panel-header">
-    <h2>Alpha vs market over time</h2>
-    <p>Each bar is one resolved analysis. Green is positive alpha; rose is negative alpha.</p>
+    <h2 class="label-with-help">
+      Alpha vs market over time
+      {{ term("Alpha", "Stock return minus SPY return over the same holding period. Positive alpha means this stock beat SPY.") }}
+    </h2>
+    <p>
+      Each bar is one resolved analysis.
+      <span class="label-with-help">
+        Green is positive alpha; rose is negative alpha.
+        {{ term("Positive alpha", "Positive alpha means the stock did better than SPY. Negative alpha means it did worse than SPY.") }}
+      </span>
+    </p>
   </div>
   {% if view.alpha_chart %}
   <div class="chart-frame">
@@ -61,7 +87,10 @@
 
 <section class="panel">
   <div class="panel-header">
-    <h2>How each rating has performed for {{ view.ticker }}</h2>
+    <h2 class="label-with-help">
+      How each rating has performed for {{ view.ticker }}
+      {{ term("Rating calibration", "A check of how each StockSage rating has actually performed for this ticker after outcomes are resolved.") }}
+    </h2>
     <p>Average alpha by rating label.</p>
   </div>
   {% if view.show_rating_calibration and view.rating_chart %}

@@ -4,9 +4,10 @@ from datetime import date, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
+from api import services
 from api.app import create_app
 from api.deps import get_db
-from core.models import Analysis, AnalysisQueue, AnalysisRequest, Outcome
+from core.models import Analysis, AnalysisQueue, AnalysisRequest, Outcome, QueueRun
 from core.users import resolve_request_user
 
 
@@ -31,7 +32,7 @@ def test_openapi_reports_package_version(db):
     response = _client(db).get("/openapi.json")
 
     assert response.status_code == 200
-    assert response.json()["info"]["version"] == "0.0.1"
+    assert response.json()["info"]["version"] == "0.0.2"
 
 
 def test_static_chart_asset_is_served(db):
@@ -39,6 +40,13 @@ def test_static_chart_asset_is_served(db):
 
     assert response.status_code == 200
     assert "renderSystemAccuracy" in response.text
+
+
+def test_static_app_asset_is_served(db):
+    response = _client(db).get("/static/app.js")
+
+    assert response.status_code == 200
+    assert "prefillAnalysisForm" in response.text
 
 
 def test_empty_db_pages_render_clear_states(db):
@@ -94,6 +102,9 @@ def test_research_landing_returns_system_summary(db, completed_analysis):
     assert "System accuracy over time" in response.text
     assert "system-accuracy-data" in response.text
     assert "https://cdn.jsdelivr.net/npm/chart.js" in response.text
+    assert 'aria-label="Help: Rolling 30-day hit rate"' in response.text
+    assert 'data-analysis-ticker="AAPL"' in response.text
+    assert "Analyze again" in response.text
 
 
 def test_research_tickers_partial_supports_filtered_updates(db, completed_analysis):
@@ -311,11 +322,14 @@ def test_ticker_and_analysis_routes(db, completed_analysis):
     assert "Alpha vs market over time" in ticker.text
     assert "ticker-alpha-chart" in ticker.text
     assert "ticker-alpha-data" in ticker.text
+    assert 'aria-label="Help: Positive alpha"' in ticker.text
+    assert 'data-analysis-ticker="AAPL"' in ticker.text
     assert "View report" in ticker.text
     assert report.status_code == 200
     assert "AAPL report" in report.text
     assert "Correct call" in report.text
     assert "Stock return" in report.text
+    assert 'aria-label="Help: Raw return"' in report.text
     assert "Market report text." in report.text
     assert "Evidence" in report.text
 
@@ -595,6 +609,8 @@ def test_queue_status_route_lists_jobs(db):
     assert "Queue status" in response.text
     assert "AAPL" in response.text
     assert "Queued" in response.text
+    assert "Run next 1" in response.text
+    assert "Live LLM run" in response.text
 
 
 def test_queue_partial_polls_and_retry_action_for_active_and_failed_jobs(db):
@@ -630,3 +646,70 @@ def test_queue_partial_polls_and_retry_action_for_active_and_failed_jobs(db):
     assert "AMZN" in response.text
     assert "PLTR" in response.text
     assert 'hx-post="/queue/' in response.text
+
+
+def test_queue_runner_controls_create_and_stop_run(db, monkeypatch):
+    monkeypatch.setattr(services.web_runner, "start_queue_run", lambda run_id: True)
+    monkeypatch.setattr(services.web_runner, "is_queue_run_thread_active", lambda run_id: True)
+    user = resolve_request_user(db, username="alice")
+    db.add(
+        AnalysisQueue(
+            ticker="AAPL",
+            trade_date=date(2026, 1, 2),
+            priority=0,
+            queued_at=datetime(2026, 1, 2, 9, 0),
+            status="queued",
+            requested_by_user_id=user.id,
+        )
+    )
+    db.commit()
+    client = _client(db)
+
+    started = client.post(
+        "/queue/run",
+        data={"limit": "1", "user": "alice"},
+        headers={"HX-Request": "true"},
+    )
+    duplicate = client.post(
+        "/queue/run",
+        data={"limit": "5", "user": "alice"},
+        headers={"HX-Request": "true"},
+    )
+    stopped = client.post("/queue/run/stop", headers={"HX-Request": "true"})
+
+    assert started.status_code == 200
+    assert "Stop after current job" in started.text
+    assert duplicate.status_code == 200
+    assert db.query(QueueRun).count() == 1
+    run = db.query(QueueRun).one()
+    assert run.requested_limit == 1
+    assert run.started_by.username == "alice"
+    assert stopped.status_code == 200
+    assert "Stopping" in stopped.text
+    db.refresh(run)
+    assert run.status == "stopping"
+
+
+def test_queue_runner_marks_missing_running_thread_blocked(db):
+    user = resolve_request_user(db, username="alice")
+    db.add(
+        QueueRun(
+            status="running",
+            requested_limit=1,
+            max_workers=1,
+            started_by_user_id=user.id,
+            started_at=datetime(2026, 1, 2, 9, 0),
+            heartbeat_at=datetime(2026, 1, 2, 9, 0),
+            attempted=0,
+            completed=0,
+            failed=0,
+            skipped=0,
+        )
+    )
+    db.commit()
+
+    response = _client(db).get("/queue")
+
+    assert response.status_code == 200
+    assert "Needs attention" in response.text
+    assert "web queue runner is no longer active" in response.text

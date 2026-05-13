@@ -1,0 +1,11 @@
+{% macro term(label, text) -%}
+<details class="help-term">
+  <summary class="help-trigger" aria-label="Help: {{ label|e }}">
+    <span aria-hidden="true">?</span>
+  </summary>
+  <span class="help-popover" role="note">
+    <strong>{{ label }}</strong>
+    <span>{{ text }}</span>
+  </span>
+</details>
+{%- endmacro %}

@@ -44,6 +44,7 @@ class User(Base):
     requested_queue_items: Mapped[list["AnalysisQueue"]] = relationship(
         back_populates="requested_by"
     )
+    started_queue_runs: Mapped[list["QueueRun"]] = relationship(back_populates="started_by")
 
 
 class Analysis(Base):
@@ -170,3 +171,26 @@ class AnalysisRequest(Base):
     user: Mapped["User"] = relationship(back_populates="requests")
     analysis: Mapped[Optional["Analysis"]] = relationship(back_populates="requests")
     queue_item: Mapped[Optional["AnalysisQueue"]] = relationship(back_populates="requests")
+
+
+class QueueRun(Base):
+    __tablename__ = "queue_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued", index=True)
+    requested_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_workers: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    started_by_user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    stop_requested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    attempted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    failed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    skipped: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    started_by: Mapped[Optional["User"]] = relationship(back_populates="started_queue_runs")

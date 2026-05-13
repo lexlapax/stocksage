@@ -27,10 +27,12 @@
   <button class="button" type="submit">Apply</button>
 </form>
 
+{% include "partials/queue_runner.html" %}
+
 <section class="panel">
   <div class="panel-header">
     <h2>Queued work</h2>
-    <p>This page stays out of primary navigation.</p>
+    <p>This page is for local queue operation and troubleshooting.</p>
   </div>
   {% include "partials/queue_jobs.html" %}
 </section>

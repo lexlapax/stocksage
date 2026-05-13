@@ -19,7 +19,7 @@ outcome tracking, and a web UI. The core loop is:
 8. `core/users.py` and `core/request_history.py` track who asked for shared canonical analyses
 9. Milestone 06 adds the FastAPI + Jinja2/HTMX web UI and charts
 10. Milestone 07 closes post-release hardening and polish gaps from the `0.0.1` baseline
-11. Milestone 08 is implementation-ready for UI clarity, guided help, web queue operation, and quick re-analysis
+11. Milestone 08 adds UI clarity, guided help, web queue operation, and quick re-analysis
 
 Human-facing orientation starts in `README.md`. Local setup and CLI usage live in
 `docs/getting-started.md`; development workflow lives in `docs/development.md`. Full architecture
@@ -29,7 +29,7 @@ and DB schema: `docs/plan.md`
 
 ## Current Status
 
-**Current status: Milestone 08 ready — UI Clarity, Guided Help, Web Queue Operation, and Quick Re-analysis**
+**Current status: release 0.0.2 — Milestone 08 accepted**
 Detailed task lists and acceptance criteria:
 `docs/01-milestone.md`, `docs/02-milestone.md`, `docs/03-milestone.md`,
 `docs/04-milestone.md`, `docs/05-milestone.md`, `docs/06-milestone.md`,
@@ -37,7 +37,7 @@ Detailed task lists and acceptance criteria:
 
 **What exists:**
 - `config.py` — pydantic-settings; reads `.env`; builds tradingagents config dict
-- `core/models.py` — SQLAlchemy ORM: User, Analysis, AnalysisDetail, Outcome, AnalysisQueue, AnalysisRequest
+- `core/models.py` — SQLAlchemy ORM: User, Analysis, AnalysisDetail, Outcome, AnalysisQueue, AnalysisRequest, QueueRun
 - `core/db.py` — engine, SessionLocal, init_db()
 - `core/analysis_runs.py` — shared analysis row preparation, success persistence, and failure marking
 - `core/analyzer.py` — wraps TradingAgentsGraph; parses final_state into AnalysisResult
@@ -45,20 +45,22 @@ Detailed task lists and acceptance criteria:
 - `core/trends.py` — alpha-aware ticker/model accuracy stats, rating calibration, trend helpers
 - `core/memory_sync.py` — DB-to-TradingAgents memory log sync for resolved outcomes
 - `core/queueing.py` — enqueue/list/retry/clear/claim queue operations
+- `core/queue_runs.py` — persisted browser queue-run lifecycle state
 - `core/users.py` — default OS user, `--user`, and `--userid` resolution
 - `core/request_history.py` — per-user request rows over shared canonical analyses and queue jobs
 - `core/submissions.py` — shared submission helper for web/CLI-style request attribution
 - `worker/runner.py` — queue worker with stale-running recovery and configurable worker count
+- `worker/web_runner.py` — in-process browser runner that processes queued jobs one at a time
 - `stocksage/cli.py` — Click commands: analyze, resolve, summary, list, leaderboard, models, queue
 - `api/app.py` — FastAPI app factory for Milestone 06
 - `api/deps.py` — DB session dependency wiring for routes and tests
-- `api/services.py` — route view-data assembly over core modules, including web submission/retry helpers
+- `api/services.py` — route view-data assembly over core modules, including web submission/retry and queue-run helpers
 - `api/routes/web.py` — route handlers for Research, Workspace, Analysis, Queue, submission, retry, and health
-- `web/templates/` — Jinja2 shell, page templates, and HTMX partials for M06
-- `web/static/styles.css` and `web/static/charts.js` — shared web UI styling and Chart.js rendering
+- `web/templates/` — Jinja2 shell, page templates, macro components, and HTMX partials
+- `web/static/styles.css`, `web/static/app.js`, and `web/static/charts.js` — shared styling, modal prefill behavior, and Chart.js rendering
 - `cli/main.py` — compatibility wrapper for `python -m cli.main`
 - `alembic/env.py` — migrations wired to Settings.database_url + core.models.Base
-- `tests/` — unit and CLI integration coverage for Milestone 01/02/03/04 behavior
+- `tests/` — unit, CLI, API, and route/template coverage for milestone behavior
 - `docs/getting-started.md` — local setup, configuration, and CLI usage
 - `docs/development.md` — development workflow, checks, and docs maintenance
 - `docs/03-milestone.md` — accepted alpha-aware accuracy and memory sync work
@@ -66,11 +68,13 @@ Detailed task lists and acceptance criteria:
 - `docs/05-milestone.md` — accepted user identity + request history work
 - `docs/06-milestone.md` — accepted web UI + charts work
 - `docs/07-milestone.md` — accepted hardening and polish gap analysis
-- `docs/08-milestone.md` — ready implementation plan for UI clarity, guided help, web queue
-  operation, and quick re-analysis
+- `docs/08-milestone.md` — accepted UI clarity, guided help, web queue operation, and
+  quick re-analysis work
 
-**Next action:** Implement Milestone 08 task-by-task:
+**Next action:** Open the next milestone from fresh user feedback:
 ```bash
+node --check web/static/app.js
+node --check web/static/charts.js
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
@@ -84,7 +88,8 @@ Milestone 05 is accepted after adding `users`, `analysis_requests`, CLI user fla
 attribution, migration backfill, and tests. Milestone 06 is accepted after adding the local web UI,
 HTMX partials, queue controls, Chart.js charts, run docs, and route/template tests.
 Milestone 07 is accepted after completing the no-new-scope hardening pass over the `0.0.1`
-release baseline.
+release baseline. Milestone 08 is accepted after contextual help, persisted browser queue-run
+state, queue-runner controls, quick re-analysis actions, docs, and tests landed.
 
 ---
 
@@ -118,7 +123,7 @@ worker/     Async queue runner
 api/        FastAPI app, route dependencies, routes, and view-data assembly
 web/        Jinja2 templates, HTMX partials, CSS, and lightweight chart JavaScript
 alembic/    DB migrations — every schema change gets its own revision
-docs/       plan.md, getting-started.md, development.md, and milestone docs 01-07
+docs/       plan.md, getting-started.md, development.md, and milestone docs 01-08
 ```
 
 ## Database Rules
@@ -165,5 +170,5 @@ or incomplete.
 
 ## Milestones
 
-Milestones 01-07 are accepted. Current implementation scope is tracked in
-`docs/08-milestone.md`; keep its checkboxes and acceptance criteria current as M08 lands.
+Milestones 01-08 are accepted. Keep milestone docs, the README, changelog, and plan current when
+the next scope is opened.

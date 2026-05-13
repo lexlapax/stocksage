@@ -8,7 +8,7 @@ surfaces historical trends in a browser-based UI. The system starts as a local C
 multi-user request attribution before the web layer, and grows into a web application without
 architectural rewrites.
 
-Current release baseline: `0.0.1`, accepted through Milestone 07.
+Current release baseline: `0.0.2`, accepted through Milestone 08.
 
 ---
 
@@ -176,6 +176,24 @@ StockSage uses shared canonical analysis records plus per-user request history:
 | completed_at | DATETIME | nullable |
 | error_message | TEXT | nullable |
 
+### `queue_runs`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| status | VARCHAR(16) | queued / running / stopping / stopped / finished / failed / blocked |
+| requested_limit | INTEGER | nullable; null means all queued jobs |
+| max_workers | INTEGER | currently one for browser-triggered runs |
+| started_by_user_id | INTEGER FK → users.id | nullable local requester attribution |
+| started_at | DATETIME | |
+| heartbeat_at | DATETIME | nullable |
+| stop_requested_at | DATETIME | nullable; honored between jobs |
+| completed_at | DATETIME | nullable |
+| attempted | INTEGER | completed + failed attempts claimed by the runner |
+| completed | INTEGER | successful jobs |
+| failed | INTEGER | failed jobs |
+| skipped | INTEGER | no-job exits |
+| last_error | TEXT | nullable |
+
 ---
 
 ## Project Layout
@@ -194,7 +212,7 @@ stocksage/
 │   ├── 06-milestone.md        ← Web UI + charts
 │   ├── 06-ui-design.md        ← M06 wireframe and UI building blocks
 │   ├── 07-milestone.md        ← Hardening and polish gap analysis
-│   └── 08-milestone.md        ← UI clarity and guided help backlog
+│   └── 08-milestone.md        ← accepted UI clarity and web queue operation
 ├── stocksage/
 │   ├── __init__.py
 │   └── cli.py                 ← Click commands and console script entry point
@@ -248,14 +266,14 @@ stocksage/
 | **05** | User Identity + Shared Analysis Ownership Foundation | accepted | `docs/05-milestone.md` |
 | **06** | FastAPI + Jinja2/HTMX Web UI + Charts | accepted | `docs/06-milestone.md` |
 | **07** | Hardening & Polish | accepted | `docs/07-milestone.md` |
-| **08** | UI Clarity, Guided Help, and Web Queue Operation | ready | `docs/08-milestone.md` |
+| **08** | UI Clarity, Guided Help, and Web Queue Operation | accepted | `docs/08-milestone.md` |
 
 Milestone 06 was accepted after the reviewed UI wireframe, FastAPI route/template implementation,
 HTMX queue/workspace controls, Chart.js visualizations, local run docs, and route/template tests.
 Milestone 07 is accepted after closing post-release hardening gaps found by comparing the accepted
 M01-M06 specs against the `0.0.1` implementation.
-Milestone 08 is implementation-ready and covers in-product explanations, browser-based queue
-operation, and quick re-analysis actions for non-technical users.
+Milestone 08 is accepted after adding in-product explanations, browser-based queue operation,
+persisted queue-run state, and quick re-analysis actions for non-technical users.
 
 ---
 

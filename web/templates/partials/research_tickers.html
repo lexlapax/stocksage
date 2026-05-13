@@ -1,3 +1,5 @@
+{% from "macros/help.html" import term %}
+
 <section id="research-tickers" class="panel">
   <div class="panel-header">
     <h2>Analyzed stocks</h2>
@@ -11,11 +13,32 @@
           <th>Ticker</th>
           <th>Last rating</th>
           <th>Last analyzed</th>
-          <th>Reports</th>
+          <th>
+            <span class="label-with-help">
+              Reports
+              {{ term("Resolved analysis", "A completed report is listed right away. Accuracy metrics wait until StockSage later checks the real stock and SPY returns.") }}
+            </span>
+          </th>
           <th>Checked</th>
-          <th>Hit rate</th>
-          <th>Avg alpha</th>
-          <th>Trend</th>
+          <th>
+            <span class="label-with-help">
+              Hit rate
+              {{ term("Hit rate", "The percent of resolved calls whose rating direction matched alpha, not just the stock's raw return.") }}
+            </span>
+          </th>
+          <th>
+            <span class="label-with-help">
+              Avg alpha
+              {{ term("Alpha", "Stock return minus SPY return over the same holding period. Positive alpha means the stock beat the market.") }}
+            </span>
+          </th>
+          <th>
+            <span class="label-with-help">
+              Trend
+              {{ term("Trend", "A compact view of the latest resolved calls. Tall marks are hits; short marks are misses.") }}
+            </span>
+          </th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -39,6 +62,16 @@
           <td><span class="muted">Pending</span></td>
           <td><span class="muted">-</span></td>
           {% endif %}
+          <td>
+            <a
+              class="button subtle"
+              href="#new-analysis"
+              data-analysis-ticker="{{ row.ticker }}"
+              data-analysis-date="{{ today }}"
+            >
+              Analyze again
+            </a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>

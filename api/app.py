@@ -13,7 +13,7 @@ def _package_version() -> str:
     try:
         return version("stocksage")
     except PackageNotFoundError:
-        return "0.0.1"
+        return "0.0.2"
 
 
 def create_app() -> FastAPI:

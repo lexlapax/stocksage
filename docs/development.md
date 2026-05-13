@@ -34,6 +34,7 @@ the web UI.
 When editing browser JavaScript, also run:
 
 ```bash
+node --check web/static/app.js
 node --check web/static/charts.js
 ```
 

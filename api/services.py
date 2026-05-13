@@ -6,8 +6,16 @@ from statistics import mean
 
 from sqlalchemy.orm import Session
 
-from core.models import Analysis, AnalysisQueue, AnalysisRequest, Outcome
-from core.queueing import list_queue_items, retry_queue_item
+from core.models import Analysis, AnalysisQueue, AnalysisRequest, Outcome, QueueRun
+from core.queue_runs import (
+    ACTIVE_QUEUE_RUN_STATUSES,
+    block_queue_run,
+    create_queue_run,
+    get_active_queue_run,
+    get_latest_queue_run,
+    request_queue_run_stop,
+)
+from core.queueing import list_queue_items, retry_failed_queue_items, retry_queue_item
 from core.request_history import list_user_requests
 from core.submissions import SubmissionResult, submit_analysis_request
 from core.trends import (
@@ -16,6 +24,7 @@ from core.trends import (
     is_correct_alpha_direction,
 )
 from core.users import resolve_request_user
+from worker import web_runner
 
 
 def research_landing(
@@ -215,15 +224,105 @@ def retry_queue_job(db: Session, *, queue_id: int) -> AnalysisQueue | None:
     return retry_queue_item(db, queue_item.id)
 
 
+def retry_failed_queue_jobs(db: Session) -> int:
+    return retry_failed_queue_items(db)
+
+
+def start_queue_runner(
+    db: Session,
+    *,
+    requested_limit: int | None,
+    username: str | None = None,
+    user_id: int | None = None,
+) -> dict:
+    user = resolve_request_user(db, username=username, user_id=user_id)
+    result = create_queue_run(
+        db,
+        requested_limit=requested_limit,
+        max_workers=1,
+        started_by_user_id=user.id,
+    )
+    if result.created:
+        web_runner.start_queue_run(result.queue_run.id)
+    return queue_runner_status(db)
+
+
+def stop_queue_runner(db: Session) -> dict:
+    request_queue_run_stop(db)
+    return queue_runner_status(db)
+
+
 def queue_status(db: Session, *, status: str | None = None, limit: int = 100) -> dict:
     rows = list_queue_items(db, status=status, limit=limit)
+    runner = queue_runner_status(db)
     return {
         "page": "Queue Status",
         "admin_only": True,
         "status": status,
-        "has_active_work": any(row.status in {"queued", "running"} for row in rows),
+        "has_active_work": any(row.status in {"queued", "running"} for row in rows)
+        or runner["is_active"],
         "last_refreshed": datetime.now(UTC).strftime("%H:%M:%S"),
+        "runner": runner,
         "jobs": [_queue_row(row) for row in rows],
+    }
+
+
+def queue_runner_status(db: Session) -> dict:
+    active = get_active_queue_run(db)
+    if (
+        active is not None
+        and active.status in {"running", "stopping"}
+        and not web_runner.is_queue_run_thread_active(active.id)
+    ):
+        active = block_queue_run(
+            db,
+            active.id,
+            "The web queue runner is no longer active. Start a new run to continue.",
+        )
+
+    row = active or get_latest_queue_run(db)
+    queued_jobs = db.query(AnalysisQueue).filter(AnalysisQueue.status == "queued").count()
+    failed_jobs = db.query(AnalysisQueue).filter(AnalysisQueue.status == "failed").count()
+    if row is None:
+        return {
+            "id": None,
+            "status": "idle",
+            "status_label": "Idle",
+            "is_active": False,
+            "can_start": queued_jobs > 0,
+            "can_stop": False,
+            "requested_limit_label": None,
+            "started_by": None,
+            "started_at": None,
+            "completed_at": None,
+            "attempted": 0,
+            "completed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "queued_jobs": queued_jobs,
+            "failed_jobs": failed_jobs,
+            "last_error": None,
+        }
+
+    is_active = row.status in ACTIVE_QUEUE_RUN_STATUSES
+    return {
+        "id": row.id,
+        "status": row.status,
+        "status_label": _queue_run_status_label(row.status),
+        "is_active": is_active,
+        "can_start": not is_active and queued_jobs > 0,
+        "can_stop": row.status in {"queued", "running"},
+        "requested_limit_label": _queue_run_limit_label(row),
+        "started_by": row.started_by.username if row.started_by else None,
+        "started_at": row.started_at.isoformat(),
+        "completed_at": row.completed_at.isoformat() if row.completed_at else None,
+        "attempted": row.attempted,
+        "completed": row.completed,
+        "failed": row.failed,
+        "skipped": row.skipped,
+        "queued_jobs": queued_jobs,
+        "failed_jobs": failed_jobs,
+        "last_error": row.last_error,
     }
 
 
@@ -392,6 +491,28 @@ def _queue_row(row: AnalysisQueue) -> dict:
         "completed_at": row.completed_at.isoformat() if row.completed_at else None,
         "last_error": row.last_error,
     }
+
+
+def _queue_run_status_label(status: str) -> str:
+    labels = {
+        "idle": "Idle",
+        "queued": "Starting",
+        "running": "Running",
+        "stopping": "Stopping",
+        "stopped": "Stopped",
+        "finished": "Finished",
+        "failed": "Failed",
+        "blocked": "Needs attention",
+    }
+    return labels.get(status, status.title())
+
+
+def _queue_run_limit_label(row: QueueRun) -> str:
+    if row.requested_limit is None:
+        return "all queued jobs"
+    if row.requested_limit == 1:
+        return "1 job"
+    return f"{row.requested_limit} jobs"
 
 
 def _alpha_bars(rows: list[Analysis]) -> list[dict]:

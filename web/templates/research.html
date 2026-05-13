@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/help.html" import term %}
 
 {% block title %}Research · StockSage{% endblock %}
 
@@ -60,11 +61,14 @@
 
 <section class="metric-grid">
   <article class="metric">
-    <span>Stocks analyzed</span>
+    <span class="metric-label">Stocks analyzed</span>
     <strong>{{ view.summary.stocks_analyzed }}</strong>
   </article>
   <article class="metric">
-    <span>Avg hit rate</span>
+    <span class="metric-label">
+      Avg hit rate
+      {{ term("Hit rate", "The share of resolved calls whose rating direction matched alpha. Buy or Overweight should beat SPY; Sell or Underweight should trail SPY.") }}
+    </span>
     {% if view.summary.resolved_stocks %}
     <strong>{{ "%.0f%%"|format(view.summary.avg_hit_rate * 100) }}</strong>
     {% else %}
@@ -72,7 +76,10 @@
     {% endif %}
   </article>
   <article class="metric">
-    <span>Avg alpha</span>
+    <span class="metric-label">
+      Avg alpha
+      {{ term("Average alpha", "The average amount these stocks beat or trailed SPY over the outcome window. Positive is better than the market; negative is worse.") }}
+    </span>
     {% if view.summary.resolved_stocks %}
     <strong>{{ "%+.1f%%"|format(view.summary.avg_alpha_return * 100) }}</strong>
     {% else %}
@@ -80,15 +87,24 @@
     {% endif %}
   </article>
   <article class="metric">
-    <span>Running</span>
+    <span class="metric-label">Running</span>
     <strong>{{ view.summary.running }}</strong>
   </article>
 </section>
 
 <section class="panel chart-panel">
   <div class="panel-header">
-    <h2>System accuracy over time</h2>
-    <p>Rolling 30-day hit rate across resolved calls. The reference line marks 50%.</p>
+    <h2 class="label-with-help">
+      System accuracy over time
+      {{ term("Rolling 30-day hit rate", "Each point looks back 30 calendar days from that date and measures only resolved calls in that window. It needs resolved outcomes before a trend appears.") }}
+    </h2>
+    <p>
+      Rolling 30-day hit rate across resolved calls.
+      <span class="label-with-help">
+        The reference line marks 50%.
+        {{ term("50% reference line", "A simple baseline: above 50% means more calls were directionally right than wrong in that rolling window.") }}
+      </span>
+    </p>
   </div>
   {% if view.accuracy_chart %}
   <div class="chart-frame">
