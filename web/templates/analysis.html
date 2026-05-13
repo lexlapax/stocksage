@@ -12,8 +12,8 @@
 </section>
 
 {% if view.outcome %}
-<section class="outcome-block {% if view.outcome.alpha_return >= 0 %}positive-border{% else %}negative-border{% endif %}">
-  <strong>{% if view.outcome.beat_market %}Beat market{% else %}Missed market{% endif %}</strong>
+<section class="outcome-block {% if view.outcome.correct_call %}correct-border{% else %}missed-border{% endif %}">
+  <strong>{% if view.outcome.correct_call %}Correct call{% else %}Missed call{% endif %}</strong>
   <span>Stock return {{ "%+.1f%%"|format(view.outcome.raw_return * 100) }}</span>
   <span>SPY {{ "%+.1f%%"|format(view.outcome.spy_return * 100) }}</span>
   <span>Alpha {{ "%+.1f%%"|format(view.outcome.alpha_return * 100) }}</span>

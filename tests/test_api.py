@@ -48,6 +48,9 @@ def test_research_landing_returns_system_summary(db, completed_analysis):
     assert "Research" in response.text
     assert "AAPL" in response.text
     assert "+2.0%" in response.text
+    assert "System accuracy over time" in response.text
+    assert "system-accuracy-data" in response.text
+    assert "https://cdn.jsdelivr.net/npm/chart.js" in response.text
 
 
 def test_research_landing_supports_rating_filter(db, completed_analysis):
@@ -112,10 +115,12 @@ def test_ticker_and_analysis_routes(db, completed_analysis):
     assert ticker.status_code == 200
     assert "AAPL intelligence" in ticker.text
     assert "Alpha vs market over time" in ticker.text
+    assert "ticker-alpha-chart" in ticker.text
+    assert "ticker-alpha-data" in ticker.text
     assert "View report" in ticker.text
     assert report.status_code == 200
     assert "AAPL report" in report.text
-    assert "Beat market" in report.text
+    assert "Correct call" in report.text
     assert "Stock return" in report.text
     assert "Market report text." in report.text
     assert "Evidence" in report.text
@@ -196,6 +201,53 @@ def test_ticker_page_hides_calibration_until_enough_outcomes(db, completed_analy
 
     assert response.status_code == 200
     assert "Not enough data yet" in response.text
+    assert "rating-calibration-chart" not in response.text
+
+
+def test_ticker_page_shows_calibration_chart_with_enough_outcomes(db, completed_analysis):
+    for offset, alpha_return, rating in [
+        (1, -0.01, "Overweight"),
+        (2, 0.04, "Buy"),
+    ]:
+        row = Analysis(
+            ticker="AAPL",
+            trade_date=date(2026, 1, 2 + offset),
+            run_at=datetime(2026, 1, 2 + offset, 9, 0),
+            completed_at=datetime(2026, 1, 2 + offset, 9, 5),
+            status="completed",
+            rating=rating,
+        )
+        db.add(row)
+        db.flush()
+        db.add(
+            Outcome(
+                analysis_id=row.id,
+                resolved_at=datetime(2026, 1, 10 + offset),
+                raw_return=alpha_return + 0.01,
+                alpha_return=alpha_return,
+                holding_days=5,
+                reflection="Resolved.",
+            )
+        )
+
+    db.add(
+        Outcome(
+            analysis_id=completed_analysis.id,
+            resolved_at=datetime(2026, 1, 10),
+            raw_return=0.05,
+            alpha_return=0.02,
+            holding_days=5,
+            reflection="Useful call.",
+        )
+    )
+    db.commit()
+
+    response = _client(db).get("/ticker/AAPL")
+
+    assert response.status_code == 200
+    assert "rating-calibration-chart" in response.text
+    assert "rating-calibration-data" in response.text
+    assert "Average alpha by rating label" in response.text
 
 
 def test_submit_analysis_creates_queue_and_request_then_redirects(db):

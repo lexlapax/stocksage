@@ -36,20 +36,13 @@
 <section class="panel">
   <div class="panel-header">
     <h2>Alpha vs market over time</h2>
-    <p>Each bar is one resolved analysis. Green beat the market; rose missed.</p>
+    <p>Each bar is one resolved analysis. Green is positive alpha; rose is negative alpha.</p>
   </div>
-  {% if view.alpha_bars %}
-  <div class="bar-chart" aria-label="Alpha vs market over time">
-    {% for point in view.alpha_bars %}
-    <div class="bar-item">
-      <span class="bar-value">{{ "%+.1f%%"|format(point.alpha_return * 100) }}</span>
-      <div class="bar-track vertical">
-        <span class="bar {{ point.direction }}" style="height: {{ point.height_pct }}%"></span>
-      </div>
-      <span class="bar-label">{{ point.date[5:] }}</span>
-    </div>
-    {% endfor %}
+  {% if view.alpha_chart %}
+  <div class="chart-frame">
+    <canvas id="ticker-alpha-chart" aria-label="Alpha vs market over time"></canvas>
   </div>
+  <script id="ticker-alpha-data" type="application/json">{{ view.alpha_chart|tojson }}</script>
   {% else %}
   <div class="empty-state">
     <h3>No resolved outcomes yet</h3>
@@ -63,18 +56,11 @@
     <h2>How each rating has performed for {{ view.ticker }}</h2>
     <p>Average alpha by rating label.</p>
   </div>
-  {% if view.show_rating_calibration and view.rating_calibration %}
-  <div class="calibration-chart">
-    {% for row in view.rating_calibration %}
-    <div class="calibration-row">
-      <span class="calibration-label">{{ row.rating }}</span>
-      <span class="calibration-track">
-        <span class="calibration-bar {{ row.direction }}" style="width: {{ row.width_pct }}%"></span>
-      </span>
-      <strong>{{ "%+.1f%%"|format(row.avg_alpha_return * 100) }}</strong>
-    </div>
-    {% endfor %}
+  {% if view.show_rating_calibration and view.rating_chart %}
+  <div class="chart-frame chart-frame-compact">
+    <canvas id="rating-calibration-chart" aria-label="Average alpha by rating"></canvas>
   </div>
+  <script id="rating-calibration-data" type="application/json">{{ view.rating_chart|tojson }}</script>
   {% else %}
   <div class="empty-state">
     <h3>Not enough data yet</h3>
@@ -130,4 +116,11 @@
   </div>
   {% endif %}
 </section>
+{% endblock %}
+
+{% block scripts %}
+{% if view.alpha_chart or (view.show_rating_calibration and view.rating_chart) %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', path='/charts.js') }}"></script>
+{% endif %}
 {% endblock %}

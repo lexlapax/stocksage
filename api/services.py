@@ -43,6 +43,7 @@ def research_landing(
         },
         "sort": sort,
         "filters": {"rating": rating, "min_results": min_results, "date_range": date_range},
+        "accuracy_chart": _rolling_accuracy_chart(rows),
         "tickers": ticker_rows,
     }
 
@@ -61,7 +62,9 @@ def ticker_intelligence(db: Session, ticker: str) -> dict:
         "ticker": ticker,
         "summary": _ticker_row(stats) if stats else None,
         "alpha_bars": _alpha_bars(rows),
+        "alpha_chart": _alpha_chart(rows),
         "rating_calibration": _rating_calibration(rows),
+        "rating_chart": _rating_chart(rows),
         "show_rating_calibration": len([row for row in rows if row.outcome is not None]) >= 3,
         "history": [_analysis_row(row) for row in rows],
     }
@@ -267,7 +270,7 @@ def _research_ticker_rows(rows: list[Analysis]) -> list[dict]:
                     {
                         "date": row.trade_date.isoformat(),
                         "alpha_return": row.outcome.alpha_return,
-                        "beat_market": is_correct_alpha_direction(
+                        "correct_call": is_correct_alpha_direction(
                             row.rating or "", row.outcome.alpha_return
                         ),
                     }
@@ -290,6 +293,26 @@ def _sort_research_rows(rows: list[dict], sort: str) -> list[dict]:
     return sorted(rows, key=key, reverse=sort != "ticker")
 
 
+def _rolling_accuracy_chart(rows: list[Analysis]) -> list[dict]:
+    sorted_rows = sorted(rows, key=lambda row: (row.trade_date, row.id))
+    dates = sorted({row.trade_date for row in sorted_rows})
+    points = []
+    for point_date in dates:
+        start = point_date - timedelta(days=30)
+        window = [row for row in sorted_rows if start <= row.trade_date <= point_date]
+        flags = [
+            is_correct_alpha_direction(row.rating or "", row.outcome.alpha_return) for row in window
+        ]
+        points.append(
+            {
+                "date": point_date.isoformat(),
+                "hit_rate": round(_average_bools(flags) * 100, 1),
+                "resolved": len(window),
+            }
+        )
+    return points
+
+
 def _ticker_row(item: TickerStats) -> dict:
     return {
         "ticker": item.ticker,
@@ -299,8 +322,8 @@ def _ticker_row(item: TickerStats) -> dict:
         "avg_alpha_return": item.avg_alpha_return,
         "last_rating": _best_rating(item),
         "trend": [
-            {"date": trend_date.isoformat(), "beat_market": beat_market}
-            for trend_date, beat_market in item.accuracy_trend[-6:]
+            {"date": trend_date.isoformat(), "correct_call": correct_call}
+            for trend_date, correct_call in item.accuracy_trend[-6:]
         ],
     }
 
@@ -323,12 +346,14 @@ def _analysis_row(row: Analysis) -> dict:
 def _outcome_row(outcome: Outcome | None, rating: str | None) -> dict | None:
     if outcome is None:
         return None
+    correct_call = is_correct_alpha_direction(rating or "", outcome.alpha_return)
     spy_return = outcome.raw_return - outcome.alpha_return
     return {
         "raw_return": outcome.raw_return,
         "spy_return": spy_return,
         "alpha_return": outcome.alpha_return,
-        "beat_market": is_correct_alpha_direction(rating or "", outcome.alpha_return),
+        "beat_market": correct_call,
+        "correct_call": correct_call,
         "holding_days": outcome.holding_days,
         "resolved_at": outcome.resolved_at.isoformat(),
     }
@@ -381,6 +406,20 @@ def _alpha_bars(rows: list[Analysis]) -> list[dict]:
     ]
 
 
+def _alpha_chart(rows: list[Analysis]) -> list[dict]:
+    resolved = sorted(
+        [row for row in rows if row.outcome is not None],
+        key=lambda row: (row.trade_date, row.id),
+    )
+    return [
+        {
+            "date": row.trade_date.isoformat(),
+            "alpha_return": round(row.outcome.alpha_return * 100, 2),
+        }
+        for row in resolved
+    ]
+
+
 def _rating_calibration(rows: list[Analysis]) -> list[dict]:
     by_rating: dict[str, list[float]] = defaultdict(list)
     for row in rows:
@@ -400,14 +439,24 @@ def _rating_calibration(rows: list[Analysis]) -> list[dict]:
     ]
 
 
+def _rating_chart(rows: list[Analysis]) -> list[dict]:
+    return [
+        {
+            "rating": row["rating"],
+            "avg_alpha_return": round(row["avg_alpha_return"] * 100, 2),
+        }
+        for row in _rating_calibration(rows)
+    ]
+
+
 def _outcome_label(row: Analysis) -> str:
     if row.status in {"queued", "running", "failed"}:
         return row.status.title()
     if row.outcome is None:
         return "Pending"
     if is_correct_alpha_direction(row.rating or "", row.outcome.alpha_return):
-        return "Beat market"
-    return "Missed market"
+        return "Correct call"
+    return "Missed call"
 
 
 def _latest_analysis_date(item: TickerStats) -> date:

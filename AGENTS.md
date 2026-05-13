@@ -52,7 +52,7 @@ Detailed task lists and acceptance criteria:
 - `api/services.py` — route view-data assembly over core modules, including web submission/retry helpers
 - `api/routes/web.py` — route handlers for Research, Workspace, Analysis, Queue, submission, retry, and health
 - `web/templates/` — Jinja2 shell, page templates, and HTMX partials for M06
-- `web/static/styles.css` — shared web UI styling
+- `web/static/styles.css` and `web/static/charts.js` — shared web UI styling and Chart.js rendering
 - `cli/main.py` — compatibility wrapper for `python -m cli.main`
 - `alembic/env.py` — migrations wired to Settings.database_url + core.models.Base
 - `tests/` — unit and CLI integration coverage for Milestone 01/02/03/04 behavior
@@ -63,7 +63,7 @@ Detailed task lists and acceptance criteria:
 - `docs/05-milestone.md` — accepted user identity + request history work
 - `docs/06-milestone.md` — planned web UI + charts work; current focus
 
-**Next action:** Continue Milestone 06 with T05 Chart.js visualizations:
+**Next action:** Continue Milestone 06 with T06 local run docs and template coverage:
 ```bash
 uv run ruff check .
 uv run ruff format --check .

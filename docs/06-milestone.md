@@ -11,8 +11,8 @@ with useful M03 alpha-aware metrics and M05 user-scoped history.
 
 ## Status
 
-**In progress.** T00 design, T01 route foundation, T02 layout/navigation, T03 core pages, and
-T04 queue controls are implemented.
+**In progress.** T00 design, T01 route foundation, T02 layout/navigation, T03 core pages,
+T04 queue controls, and T05 charts are implemented.
 
 ---
 
@@ -67,7 +67,7 @@ tests. HTMX is loaded in the shell but only targeted interactions will be added 
 - [x] My Workspace: user-scoped submission list with status badges; HTMX polling while active.
 - [x] Ticker Intelligence page: metric tiles, alpha-over-time bar chart, rating calibration
   horizontal bar chart (hidden when fewer than 3 resolved outcomes), analysis history table.
-- [x] Analysis Report page: outcome block (stock return, SPY, alpha, beat/missed) shown only
+- [x] Analysis Report page: outcome block (stock return, SPY, alpha, correct/missed call) shown only
   when outcome is resolved; summary, thesis, and tabbed evidence sections.
 - [x] Include raw return and alpha return side by side in the outcome block.
 
@@ -88,16 +88,20 @@ reuse detection before submit, queue-backed retry buttons, and polling only whil
 
 ### T05 · Charts
 
-- [ ] System accuracy chart on Research landing: rolling 30-day hit rate line chart (Chart.js,
+- [x] System accuracy chart on Research landing: rolling 30-day hit rate line chart (Chart.js,
   CDN, no build pipeline).
-- [ ] Alpha-over-time bar chart on Ticker Intelligence: one bar per resolved analysis, green/rose
+- [x] Alpha-over-time bar chart on Ticker Intelligence: one bar per resolved analysis, green/rose
   coloring, 0-line prominent.
-- [ ] Rating calibration horizontal bar chart on Ticker Intelligence: avg alpha by rating label;
+- [x] Rating calibration horizontal bar chart on Ticker Intelligence: avg alpha by rating label;
   hidden with a note when fewer than 3 resolved outcomes exist for that ticker.
-- [ ] Serialize chart data server-side into a `<script>` tag as JSON; no separate API endpoint
+- [x] Serialize chart data server-side into a `<script>` tag as JSON; no separate API endpoint
   for chart data.
-- [ ] No separate leaderboard page and no model-performance page; the Research landing is the
+- [x] No separate leaderboard page and no model-performance page; the Research landing is the
   leaderboard.
+
+T05 uses Chart.js from CDN and a small static `charts.js` file. The backend serializes chart
+payloads into page-local JSON script tags; there are no separate chart API routes and no JS build
+pipeline.
 
 ### T06 · Local run docs and tests
 

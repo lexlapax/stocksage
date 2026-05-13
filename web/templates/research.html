@@ -69,6 +69,24 @@
   </article>
 </section>
 
+<section class="panel chart-panel">
+  <div class="panel-header">
+    <h2>System accuracy over time</h2>
+    <p>Rolling 30-day hit rate across resolved calls. The reference line marks 50%.</p>
+  </div>
+  {% if view.accuracy_chart %}
+  <div class="chart-frame">
+    <canvas id="system-accuracy-chart" aria-label="Rolling 30-day hit rate"></canvas>
+  </div>
+  <script id="system-accuracy-data" type="application/json">{{ view.accuracy_chart|tojson }}</script>
+  {% else %}
+  <div class="empty-state">
+    <h3>No resolved analyses yet</h3>
+    <p>The accuracy chart appears after StockSage checks outcomes.</p>
+  </div>
+  {% endif %}
+</section>
+
 <section class="panel">
   <div class="panel-header">
     <h2>Analyzed stocks</h2>
@@ -100,7 +118,7 @@
             {{ "%+.1f%%"|format(row.avg_alpha_return * 100) }}
           </td>
           <td class="sparkline">
-            {% for point in row.trend %}{% if point.beat_market %}▇{% else %}▂{% endif %}{% endfor %}
+            {% for point in row.trend %}{% if point.correct_call %}▇{% else %}▂{% endif %}{% endfor %}
           </td>
         </tr>
         {% endfor %}
@@ -114,4 +132,11 @@
   </div>
   {% endif %}
 </section>
+{% endblock %}
+
+{% block scripts %}
+{% if view.accuracy_chart %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', path='/charts.js') }}"></script>
+{% endif %}
 {% endblock %}

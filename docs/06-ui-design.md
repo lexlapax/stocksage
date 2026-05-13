@@ -27,7 +27,7 @@ These are separate screens with separate navigation entries. The design never co
 | alpha_return | Alpha vs market | Return minus SPY over same period |
 | raw_return | Stock return | Actual price change |
 | Outcome resolved | Result checked | Outcome row exists |
-| Hit | Beat market | Alpha > 0 |
+| Hit | Correct call | Rating was correct by alpha-aware rules |
 | AnalysisQueue status | Work status | Queued → Running → Done / Failed |
 | Model/provider | Research quality | Advanced detail, not first-screen |
 
@@ -74,8 +74,8 @@ been right about and which it has not.
 │                                                                              │
 │ Accuracy over time (last 90 days)                                            │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │  line chart: rolling 30-day hit rate (% of resolved calls that beat      │ │
-│ │  market). X axis = analysis date. Y axis = 0–100%. Zero line at 50%.     │ │
+│ │  line chart: rolling 30-day hit rate (% of resolved calls scored         │ │
+│ │  correct by alpha-aware rules). X axis = date. Y axis = 0–100%.          │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ Analyzed stocks                    Sort: [Best alpha ▾]                      │
@@ -106,8 +106,8 @@ been right about and which it has not.
 - Minimum results: 1 / 3 / 5 / 10 (exclude tickers with too little data)
 - Date range: last 30 / 90 / 180 days / all time
 
-**Trend column:** inline sparkline (small bar chart) showing the last 6 alpha values for that
-ticker, oldest → newest. Gives a sense of direction without requiring a click.
+**Trend column:** inline sparkline showing the last 6 alpha-aware outcomes for that ticker,
+oldest → newest. Tall marks are correct calls; short marks are missed calls.
 
 **Empty state:** when the DB has no resolved outcomes yet, show a calm message:
 "No resolved analyses yet. Results appear after StockSage checks outcomes ~5 trading days after
@@ -136,8 +136,8 @@ because they want to understand the track record and read the research.
 │                                                                              │
 │ Alpha vs market over time                                                    │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ bar chart: one bar per resolved analysis, colored green (beat) or        │ │
-│ │ rose (missed). X = analysis date. Y = alpha return. 0-line prominent.    │ │
+│ │ bar chart: one bar per resolved analysis, colored green for positive     │ │
+│ │ alpha or rose for negative alpha. X = date. Y = alpha. 0-line prominent. │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ How each rating has performed for AAPL                                       │
@@ -150,9 +150,9 @@ because they want to understand the track record and read the research.
 │ ┌────────────┬──────────────┬─────────────┬────────────┬────────────────┐  │
 │ │ Date       │ Rating       │ Alpha       │ Outcome    │                │  │
 │ ├────────────┼──────────────┼─────────────┼────────────┼────────────────┤  │
-│ │ May 1      │ Overweight   │ +2.4%       │ Beat mkt ✓ │ View report →  │  │
+│ │ May 1      │ Overweight   │ +2.4%       │ Correct ✓  │ View report →  │  │
 │ │ Apr 10     │ Overweight   │ -1.1%       │ Missed ✗   │ View report →  │  │
-│ │ Mar 20     │ Hold         │ +0.3%       │ Beat mkt ✓ │ View report →  │  │
+│ │ Mar 20     │ Hold         │ +0.3%       │ Correct ✓  │ View report →  │  │
 │ │ Mar 1      │ -            │ Pending     │ -          │ View report →  │  │
 │ └────────────┴──────────────┴─────────────┴────────────┴────────────────┘  │
 │                                                                              │
@@ -160,8 +160,8 @@ because they want to understand the track record and read the research.
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Outcome column:** "Beat mkt ✓" in green, "Missed ✗" in rose, "Pending" in amber (no outcome
-yet), "Running" in blue (analysis in progress).
+**Outcome column:** "Correct ✓" in green and "Missed ✗" in rose based on alpha-aware rating
+semantics. "Pending" in amber means no outcome yet; "Running" in blue means analysis in progress.
 
 **Rating calibration chart:** only shown when there are ≥3 resolved outcomes for AAPL. Hidden
 with a quiet note when data is too thin.
@@ -187,7 +187,7 @@ exposing agent internals.
 │ Outcome (resolved after 5 trading days)                                      │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
 │ │ Stock return: +4.1%     SPY over same period: +1.7%     Alpha: +2.4%    │ │
-│ │ Beat market ✓                                                            │ │
+│ │ Correct call ✓                                                           │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ Summary                                                                      │
@@ -330,8 +330,8 @@ Worker concurrency and advanced settings are behind a Settings page, not this vi
 
 **Typography and color:**
 - Ink text on white surfaces. No dark mode in scope for this milestone.
-- Positive alpha / beat market: green (`#16a34a`)
-- Negative alpha / missed: rose (`#e11d48`)
+- Alpha charts: positive alpha is green (`#16a34a`); negative alpha is rose (`#e11d48`)
+- Outcome labels: correct calls are green; missed calls are rose
 - Running / in progress: blue (`#2563eb`)
 - Queued / pending: amber (`#d97706`)
 - Neutral / pending outcome: slate gray
@@ -369,7 +369,7 @@ a `<script>` tag.
 | Workspace table | My Workspace | User-scoped status table, HTMX-refreshed |
 | Status badge | Workspace table, Queue | Queued / Running / Ready / Failed / Shared |
 | Rating badge | Research table, Report | Buy / Overweight / Hold / Underweight / Sell |
-| Outcome block | Analysis Report | Stock return, SPY, alpha, beat/missed |
+| Outcome block | Analysis Report | Stock return, SPY, alpha, correct/missed call |
 | Evidence tabs | Analysis Report | Sectioned deep-dive content |
 | New Analysis modal | all | Submit form, reuse detection |
 | Empty state | all list pages | Calm message + primary action |
@@ -381,6 +381,6 @@ a `<script>` tag.
 
 This design was reviewed and accepted before T01 began. T02 implements the shared app shell and
 initial server-rendered page templates; T03 fills in Research, Workspace, Ticker Intelligence, and
-Analysis Report content; T04 adds the modal reuse note, queue polling, and retry controls. Keep
-adjusting this document when UX decisions change, and keep route/template implementation aligned
-with it.
+Analysis Report content; T04 adds the modal reuse note, queue polling, and retry controls; T05 adds
+the Chart.js chart layer using server-serialized JSON. Keep adjusting this document when UX
+decisions change, and keep route/template implementation aligned with it.

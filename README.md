@@ -16,7 +16,8 @@ analysis database.
 - **M04 accepted:** queue commands and the worker make batch analysis resumable and retryable.
 - **M05 accepted:** user identity and request history now track who asked for shared analyses.
 - **M06 in progress:** route foundation, app shell, research pages, user workspace, modal
-  submission, and queue retry controls are complete; charts and final docs/tests remain.
+  submission, queue retry controls, and Chart.js visualizations are complete; final docs/tests
+  remain.
 
 ## Project Docs
 
@@ -37,6 +38,5 @@ analysis database.
 
 Finish Milestone 06:
 
-1. Add Chart.js visualizations for alpha-aware trends and ticker performance.
-2. Finish local run docs and template coverage.
-3. Keep route tests, template tests, Ruff, and pytest green as the UI fills in.
+1. Finish local run docs and template coverage.
+2. Keep route tests, template tests, Ruff, and pytest green as the UI fills in.
