@@ -2,6 +2,14 @@
 
 All notable changes to StockSage are tracked here.
 
+## Unreleased
+
+### Changed
+
+- Added the M07 hardening and polish gap-analysis milestone, documenting post-`0.0.1` corrections
+  for Research completeness, evidence tabs, HTMX filtering, queue navigation, version metadata,
+  and documentation consistency.
+
 ## [0.0.1] - 2026-05-13
 
 First local release. This release accepts Milestones 01-06: persistent CLI analysis, outcome

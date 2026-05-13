@@ -15,7 +15,7 @@ through [uv.lock](../uv.lock).
 ## Setup
 
 ```bash
-cd /Users/spuri/projects/lexlapax/stocksage
+cd <path-to-stocksage>
 uv venv
 uv sync
 cp .env.example .env
@@ -128,6 +128,9 @@ Open:
 
 Use the `+ Analyze` button to submit one ticker/date at a time. The UI reuses existing shared
 reports when the same ticker/date has already completed or is already queued/running.
+
+Web requests default to the current OS username. Use the modal's `Run as` field to submit as a
+different local user, or open `/workspace?user=alice` to view another user's request history.
 
 The compatibility module entry point remains available:
 

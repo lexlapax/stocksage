@@ -21,7 +21,6 @@ Current release baseline: `0.0.1`, accepted through Milestone 06.
 | Web frontend | Jinja2 + HTMX | No build toolchain; server-rendered HTML with partial updates is sufficient for one-user scale |
 | Async jobs | Thread/process pool (`concurrent.futures`) | Avoids Celery/Redis overhead; sufficient for personal use |
 | Multi-user data | Shared canonical analyses + per-user request history | Keeps global learning/analytics coherent while preserving user history and future permissions |
-| Project root | `/Users/spuri/projects/lexlapax/stocksage` | Adjacent to other lexlapax projects |
 
 ---
 
@@ -193,7 +192,8 @@ stocksage/
 │   ├── 04-milestone.md        ← Async queue + worker
 │   ├── 05-milestone.md        ← User identity + request history
 │   ├── 06-milestone.md        ← Web UI + charts
-│   └── 06-ui-design.md        ← M06 wireframe and UI building blocks
+│   ├── 06-ui-design.md        ← M06 wireframe and UI building blocks
+│   └── 07-milestone.md        ← Hardening and polish gap analysis
 ├── stocksage/
 │   ├── __init__.py
 │   └── cli.py                 ← Click commands and console script entry point
@@ -246,9 +246,12 @@ stocksage/
 | **04** | Async Job Queue + Worker | accepted | `docs/04-milestone.md` |
 | **05** | User Identity + Shared Analysis Ownership Foundation | accepted | `docs/05-milestone.md` |
 | **06** | FastAPI + Jinja2/HTMX Web UI + Charts | accepted | `docs/06-milestone.md` |
+| **07** | Hardening & Polish | active next | `docs/07-milestone.md` |
 
 Milestone 06 was accepted after the reviewed UI wireframe, FastAPI route/template implementation,
 HTMX queue/workspace controls, Chart.js visualizations, local run docs, and route/template tests.
+Milestone 07 tracks post-release hardening gaps found after comparing the accepted M01-M06 specs
+against the `0.0.1` implementation.
 
 ---
 

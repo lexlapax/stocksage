@@ -132,7 +132,10 @@ workflow notes for the lightweight chart JavaScript, and adds empty/thin/seeded 
 
 ## Notes
 
+- M06 remains accepted as the `0.0.1` release baseline. Known post-release hardening gaps are
+  tracked in [07-milestone.md](07-milestone.md) rather than reopening this milestone.
 - Do not introduce a JavaScript build pipeline unless server-rendered templates plus HTMX prove
   insufficient.
 - Prefer Chart.js or a similarly small browser-side charting dependency only when charting starts.
-- Keep API schemas stable enough that a future richer frontend could reuse them.
+- Keep web response structures stable enough that a future API milestone can formalize schemas
+  without rewriting the page data model.

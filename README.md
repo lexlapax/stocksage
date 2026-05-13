@@ -18,6 +18,8 @@ It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared ana
 - **M05 accepted:** user identity and request history now track who asked for shared analyses.
 - **M06 accepted:** local FastAPI + Jinja2/HTMX web UI, user workspace, queue controls,
   Chart.js visualizations, local run docs, and route/template tests are complete.
+- **M07 active next:** hardening and polish will close the post-release gaps found after
+  comparing the accepted M01-M06 specs against the implementation.
 
 ## Project Docs
 
@@ -33,8 +35,8 @@ It has a local CLI and FastAPI + Jinja2/HTMX browser UI over the same shared ana
 | M05 details | [docs/05-milestone.md](docs/05-milestone.md) |
 | M06 details | [docs/06-milestone.md](docs/06-milestone.md) |
 | M06 UI wireframe | [docs/06-ui-design.md](docs/06-ui-design.md) |
+| M07 hardening | [docs/07-milestone.md](docs/07-milestone.md) |
 
 ## Next Steps
 
-1. Run the web UI locally against your real database and do a human smoke test.
-2. Decide the next milestone scope after M06 based on that walkthrough.
+Complete M07 hardening and polish.
