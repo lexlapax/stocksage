@@ -6,7 +6,7 @@ Make batch analysis reliable without manual shell loops. StockSage already has a
 `AnalysisQueue` model; this milestone makes it operational through CLI queue commands and a worker
 that runs analyses with controlled concurrency.
 
-No web UI yet. The CLI remains the control surface.
+No user identity foundation or web UI yet. The CLI remains the control surface.
 
 ## Status
 

@@ -13,7 +13,8 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
 - **M03 accepted:** accuracy is now alpha-aware by default, raw-direction correctness remains
   visible as a diagnostic, and resolved DB outcomes sync into TradingAgents memory.
 - **M04 accepted:** queue commands and the worker make batch analysis resumable and retryable.
-- **M05 next:** add the FastAPI + Jinja2/HTMX web UI and charts.
+- **M05 next:** add user identity and request history while keeping analyses shared globally.
+- **M06 planned:** add the FastAPI + Jinja2/HTMX web UI and charts.
 
 ## Project Docs
 
@@ -27,12 +28,13 @@ It is currently a local CLI and is structured to grow into a FastAPI + Jinja2/HT
 | M03 details | [docs/03-milestone.md](docs/03-milestone.md) |
 | M04 details | [docs/04-milestone.md](docs/04-milestone.md) |
 | M05 details | [docs/05-milestone.md](docs/05-milestone.md) |
+| M06 details | [docs/06-milestone.md](docs/06-milestone.md) |
 
 ## Next Steps
 
-Implement Milestone 05:
+Implement Milestone 05 before starting the web UI:
 
-1. Add a local FastAPI app and Jinja2 templates.
-2. Show DB-backed analysis history, trends, leaderboard, and model performance.
-3. Add queue controls for enqueueing, retrying, and inspecting background work.
-4. Display M03 alpha-aware metrics in browser charts.
+1. Add a `users` table and default to the current OS username.
+2. Add request history so `--user alice` and `--userid 3` can trace who asked for each analysis.
+3. Keep canonical analyses, outcomes, global metrics, and TradingAgents memory shared.
+4. Move web UI/charts work to Milestone 06.

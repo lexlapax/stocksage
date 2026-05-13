@@ -47,8 +47,8 @@ stocksage/  Import-safe package entry point for the CLI
 core/       ORM models, DB sessions, analyzer wrapper, outcomes, trends
 cli/        Compatibility wrapper for python -m cli.main
 worker/     Async queue worker accepted in Milestone 04
-api/        FastAPI package placeholder for Milestone 05
-web/        Template placeholder for Milestone 05
+api/        FastAPI package placeholder for Milestone 06
+web/        Template placeholder for Milestone 06
 alembic/    Database migrations
 docs/       Project plan, usage docs, development guide, and milestone checklists
 tests/      Unit and CLI integration tests
@@ -59,6 +59,9 @@ tests/      Unit and CLI integration tests
 When milestone status changes, update the matching milestone doc, [plan.md](plan.md),
 [../README.md](../README.md), [../AGENTS.md](../AGENTS.md), and
 [../CHANGELOG.md](../CHANGELOG.md).
+
+When milestone numbers shift, run a stale-reference scan for old doc paths and milestone names
+before committing.
 
 For docs-only changes, run `git diff --check` and a stale-wording scan tailored to the change:
 

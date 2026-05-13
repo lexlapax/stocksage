@@ -55,6 +55,9 @@ OUTCOME_HOLDING_DAYS=5
 # Analyze a stock for today
 uv run stocksage analyze AAPL
 
+# Attribute a direct analysis request to a specific user
+uv run stocksage analyze AAPL --user alice
+
 # Analyze a specific date
 uv run stocksage analyze AAPL --date 2026-05-01
 
@@ -82,6 +85,9 @@ uv run stocksage models
 # Queue one stock for background analysis
 uv run stocksage queue add AAPL --date 2026-05-01
 
+# Attribute queued work to an existing numeric user id
+uv run stocksage queue add AAPL --date 2026-05-01 --userid 3
+
 # Queue a batch for the same date
 uv run stocksage queue add-batch AAPL MSFT NVDA GOOGL AMZN --date 2026-05-01
 
@@ -106,6 +112,9 @@ uv run python -m cli.main --help
 
 - `stocksage analyze` makes live LLM and market-data calls.
 - `stocksage resolve` only resolves analyses old enough to have the configured holding period.
+- Milestone 05 will add user attribution flags. The planned default user is the current OS
+  username; `--user USERNAME` auto-creates/reuses a username, while `--userid ID` must reference an
+  existing user.
 - `stocksage queue run` defaults to one concurrent analysis because each job can make live LLM and
   market-data calls. Increase `--max-workers` only when the provider budget and rate limits are
   comfortable.

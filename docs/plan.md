@@ -4,8 +4,9 @@
 
 StockSage is a standalone application that wraps the [TradingAgents](https://github.com/TauricResearch/TradingAgents)
 multi-agent LLM framework. It persists every analysis, tracks prediction accuracy over time, and
-surfaces historical trends in a browser-based UI. The system starts as a single-user CLI tool and
-grows into a web application without architectural rewrites.
+surfaces historical trends in a browser-based UI. The system starts as a local CLI tool, adds
+multi-user request attribution before the web layer, and grows into a web application without
+architectural rewrites.
 
 ---
 
@@ -17,6 +18,7 @@ grows into a web application without architectural rewrites.
 | TradingAgents dependency | Git dependency managed by `uv` | Keeps installs reproducible through `uv.lock` while tracking the upstream project |
 | Web frontend | Jinja2 + HTMX | No build toolchain; server-rendered HTML with partial updates is sufficient for one-user scale |
 | Async jobs | Thread/process pool (`concurrent.futures`) | Avoids Celery/Redis overhead; sufficient for personal use |
+| Multi-user data | Shared canonical analyses + per-user request history | Keeps global learning/analytics coherent while preserving user history and future permissions |
 | Project root | `/Users/spuri/projects/lexlapax/stocksage` | Adjacent to other lexlapax projects |
 
 ---
@@ -65,12 +67,32 @@ final_trade_decision   ← Portfolio Manager decision (rating + prose)
 - `TraderAction` — Buy / Hold / Sell
 - `PortfolioDecision` — rating, executive_summary, investment_thesis, price_target, time_horizon
 
-The library's own `TradingMemoryLog` (markdown file) keeps running for prompt injection into the
-Portfolio Manager. StockSage's DB is a parallel, richer store for the UI and analytics layer.
+The library's own `TradingMemoryLog` (markdown file) keeps running globally for prompt injection
+into the Portfolio Manager. StockSage's DB is a parallel, richer store for the UI and analytics
+layer. User-specific history is tracked in StockSage request records, not by splitting
+TradingAgents memory per user.
 
 ---
 
 ## Database Schema
+
+### Multi-user ownership model
+
+StockSage uses shared canonical analysis records plus per-user request history:
+
+- `analyses`, `analysis_details`, `outcomes`, and TradingAgents memory are global system records.
+- `users` identifies who asked for work.
+- `analysis_requests` records user history and links requests to canonical analyses and queue jobs.
+- Attribution columns such as `created_by_user_id` and `requested_by_user_id` are non-owning trace
+  fields; ownership/history lives in `analysis_requests`.
+
+### `users`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | stable user id |
+| username | VARCHAR(128) | unique human identifier; `--user` auto-creates/reuses |
+| created_at | DATETIME | |
+| last_seen_at | DATETIME | updated when resolved by CLI/web |
 
 ### `analyses`
 | Column | Type | Notes |
@@ -90,6 +112,7 @@ Portfolio Manager. StockSage's DB is a parallel, richer store for the UI and ana
 | deep_model | VARCHAR(64) | |
 | quick_model | VARCHAR(64) | |
 | error_message | TEXT | nullable; populated on failure |
+| created_by_user_id | INTEGER FK → users.id | nullable, non-owning attribution |
 
 ### `analysis_details`
 | Column | Type | Notes |
@@ -135,6 +158,22 @@ Portfolio Manager. StockSage's DB is a parallel, richer store for the UI and ana
 | attempts | INTEGER | retry/run count |
 | last_error | TEXT | nullable; populated on failed jobs |
 | analysis_id | INTEGER FK → analyses.id | nullable; set on start |
+| requested_by_user_id | INTEGER FK → users.id | nullable, non-owning attribution |
+
+### `analysis_requests`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| user_id | INTEGER FK → users.id | requester |
+| ticker | VARCHAR(16) | denormalized for filtering and history |
+| trade_date | DATE | denormalized for filtering and history |
+| analysis_id | INTEGER FK → analyses.id | nullable until canonical analysis exists |
+| queue_id | INTEGER FK → analysis_queue.id | nullable for direct runs or reused analyses |
+| source | VARCHAR(32) | cli / web / worker / backfill |
+| status | VARCHAR(16) | requested / queued / running / completed / failed / reused |
+| requested_at | DATETIME | |
+| completed_at | DATETIME | nullable |
+| error_message | TEXT | nullable |
 
 ---
 
@@ -150,7 +189,8 @@ stocksage/
 │   ├── 02-milestone.md        ← Phase 2 detailed tasks
 │   ├── 03-milestone.md        ← Accuracy semantics + memory sync
 │   ├── 04-milestone.md        ← Async queue + worker
-│   └── 05-milestone.md        ← Web UI + charts
+│   ├── 05-milestone.md        ← User identity + request history
+│   └── 06-milestone.md        ← Web UI + charts
 ├── stocksage/
 │   ├── __init__.py
 │   └── cli.py                 ← Click commands and console script entry point
@@ -172,7 +212,7 @@ stocksage/
 │   └── runner.py              ← thread pool queue poller (Milestone 04)
 ├── api/
 │   ├── __init__.py
-│   ├── app.py                 ← FastAPI app factory (Milestone 05)
+│   ├── app.py                 ← FastAPI app factory (Milestone 06)
 │   ├── routes/
 │   │   ├── analyses.py
 │   │   ├── queue.py
@@ -180,7 +220,7 @@ stocksage/
 │   └── schemas/
 │       └── analysis.py
 ├── web/
-│   └── templates/             ← Jinja2 HTML (Milestone 05)
+│   └── templates/             ← Jinja2 HTML (Milestone 06)
 ├── alembic/
 │   ├── env.py
 │   └── versions/
@@ -200,7 +240,8 @@ stocksage/
 | **02** | Memory & Trending Engine | accepted | `docs/02-milestone.md` |
 | **03** | Accuracy Semantics + TradingAgents Memory Sync | accepted | `docs/03-milestone.md` |
 | **04** | Async Job Queue + Worker | accepted | `docs/04-milestone.md` |
-| **05** | FastAPI + Jinja2/HTMX Web UI + Charts | active next | `docs/05-milestone.md` |
+| **05** | User Identity + Shared Analysis Ownership Foundation | active next | `docs/05-milestone.md` |
+| **06** | FastAPI + Jinja2/HTMX Web UI + Charts | planned | `docs/06-milestone.md` |
 
 ---
 

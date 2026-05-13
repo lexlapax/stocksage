@@ -23,7 +23,7 @@ All notable changes to StockSage are tracked here.
 - Memory sync tests covering pending-entry resolution, fallback decision rendering, and idempotency.
 - Queue and worker tests covering enqueueing, duplicate protection, retry, failure, stale recovery, and worker persistence.
 - Ruff linting and formatting checks configured in `pyproject.toml`.
-- Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, and M05 web UI/charts.
+- Detailed milestone docs for M03 accuracy semantics/memory sync, M04 async queue/worker, M05 user identity/request history, and M06 web UI/charts.
 - Focused docs for local setup/CLI usage and development workflow.
 
 ### Changed
@@ -37,7 +37,9 @@ All notable changes to StockSage are tracked here.
 - The `stocksage` console script now points at `stocksage.cli:cli` to avoid collisions with third-party `cli` packages.
 - Milestone docs now mark M01 and M02 accepted after live validation and move raw-vs-alpha accuracy plus memory sync into M03.
 - `README.md` is now a concise project front door, with operational details moved to `docs/getting-started.md` and `docs/development.md`.
+- Roadmap now inserts M05 user identity and shared-analysis request history before moving web UI/charts to M06.
 
 ### Known Gaps
 
-- Web UI remains planned for M05.
+- User identity/request history remains planned for M05.
+- Web UI remains planned for M06.

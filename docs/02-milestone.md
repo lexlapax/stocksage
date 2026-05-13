@@ -295,4 +295,5 @@ tests/
   outcomes back into TradingAgents memory.
 - Completed follow-up: `docs/04-milestone.md` introduced the async queue/worker so batch runs no
   longer require shell loops.
-- Next: web UI and charts are tracked together in `docs/05-milestone.md`.
+- User identity/request history is tracked in `docs/05-milestone.md`; web UI and charts are tracked
+  in `docs/06-milestone.md`.
