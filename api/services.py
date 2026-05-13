@@ -1,13 +1,13 @@
 """View data assembly for the web routes."""
 
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from statistics import mean
 
 from sqlalchemy.orm import Session
 
-from core.models import Analysis, AnalysisQueue, Outcome
-from core.queueing import list_queue_items
+from core.models import Analysis, AnalysisQueue, AnalysisRequest, Outcome
+from core.queueing import list_queue_items, retry_queue_item
 from core.request_history import list_user_requests
 from core.submissions import SubmissionResult, submit_analysis_request
 from core.trends import (
@@ -90,6 +90,48 @@ def analysis_report(db: Session, analysis_id: int) -> dict | None:
     }
 
 
+def analysis_reuse_note(db: Session, *, ticker: str | None, trade_date: date) -> dict:
+    if not ticker or not ticker.strip():
+        return {
+            "kind": "idle",
+            "message": "Enter a ticker and date to check for existing reports.",
+        }
+
+    normalized_ticker = ticker.upper().strip()
+    analysis = _analysis_for(db, normalized_ticker, trade_date)
+    if analysis and analysis.status == "completed":
+        return {
+            "kind": "ready",
+            "message": (
+                f"StockSage already has an existing {normalized_ticker} report for "
+                f"{trade_date.isoformat()}. Your submission will link to it."
+            ),
+        }
+    if analysis and analysis.status == "running":
+        return {
+            "kind": "running",
+            "message": (
+                f"{normalized_ticker} is already being analyzed for {trade_date.isoformat()}. "
+                "Your submission will follow the same work."
+            ),
+        }
+
+    active = _active_queue_for(db, normalized_ticker, trade_date)
+    if active:
+        return {
+            "kind": active.status,
+            "message": (
+                f"{normalized_ticker} is already {active.status} for {trade_date.isoformat()}. "
+                "Your submission will follow the same work."
+            ),
+        }
+
+    return {
+        "kind": "new",
+        "message": f"StockSage will queue a new {normalized_ticker} analysis.",
+    }
+
+
 def workspace(
     db: Session,
     *,
@@ -128,12 +170,46 @@ def submit_new_analysis(
     )
 
 
+def retry_submission(
+    db: Session,
+    *,
+    request_id: int,
+    username: str | None = None,
+    user_id: int | None = None,
+) -> AnalysisQueue | None:
+    user = resolve_request_user(db, username=username, user_id=user_id)
+    request = db.get(AnalysisRequest, request_id)
+    if request is None or request.user_id != user.id:
+        return None
+    if request.status != "failed":
+        raise ValueError("Only failed submissions can be retried.")
+    if request.queue_id is None:
+        raise ValueError("Only queued submissions can be retried from the web UI.")
+    queue_item = db.get(AnalysisQueue, request.queue_id)
+    if queue_item is None:
+        return None
+    if queue_item.status != "failed":
+        raise ValueError("Only failed queue jobs can be retried.")
+    return retry_queue_item(db, queue_item.id)
+
+
+def retry_queue_job(db: Session, *, queue_id: int) -> AnalysisQueue | None:
+    queue_item = db.get(AnalysisQueue, queue_id)
+    if queue_item is None:
+        return None
+    if queue_item.status != "failed":
+        raise ValueError("Only failed queue jobs can be retried.")
+    return retry_queue_item(db, queue_item.id)
+
+
 def queue_status(db: Session, *, status: str | None = None, limit: int = 100) -> dict:
     rows = list_queue_items(db, status=status, limit=limit)
     return {
         "page": "Queue Status",
         "admin_only": True,
         "status": status,
+        "has_active_work": any(row.status in {"queued", "running"} for row in rows),
+        "last_refreshed": datetime.now(UTC).strftime("%H:%M:%S"),
         "jobs": [_queue_row(row) for row in rows],
     }
 
@@ -280,6 +356,7 @@ def _queue_row(row: AnalysisQueue) -> dict:
         "trade_date": row.trade_date.isoformat(),
         "status": row.status,
         "requested_by_user_id": row.requested_by_user_id,
+        "requested_by": row.requested_by.username if row.requested_by else None,
         "attempts": row.attempts,
         "analysis_id": row.analysis_id,
         "queued_at": row.queued_at.isoformat(),
@@ -359,3 +436,20 @@ def _date_range_start(value: str) -> date | None:
     if days is None:
         return None
     return date.today() - timedelta(days=days)
+
+
+def _analysis_for(db: Session, ticker: str, trade_date: date) -> Analysis | None:
+    return db.query(Analysis).filter_by(ticker=ticker.upper(), trade_date=trade_date).first()
+
+
+def _active_queue_for(db: Session, ticker: str, trade_date: date) -> AnalysisQueue | None:
+    return (
+        db.query(AnalysisQueue)
+        .filter(
+            AnalysisQueue.ticker == ticker.upper(),
+            AnalysisQueue.trade_date == trade_date,
+            AnalysisQueue.status.in_(("queued", "running")),
+        )
+        .order_by(AnalysisQueue.id.desc())
+        .first()
+    )

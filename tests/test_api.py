@@ -214,6 +214,79 @@ def test_submit_analysis_creates_queue_and_request_then_redirects(db):
     assert request.queue_id == queue_item.id
 
 
+def test_submit_analysis_reuses_completed_report(db, completed_analysis):
+    response = _client(db).post(
+        "/analysis",
+        data={
+            "ticker": "aapl",
+            "trade_date": completed_analysis.trade_date.isoformat(),
+            "user": "alice",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert db.query(AnalysisQueue).count() == 0
+    request = db.query(AnalysisRequest).filter_by(ticker="AAPL").one()
+    assert request.status == "reused"
+    assert request.analysis_id == completed_analysis.id
+
+
+def test_reuse_note_reports_existing_analysis(db, completed_analysis):
+    response = _client(db).get(
+        f"/analysis/reuse-note?ticker=aapl&trade_date={completed_analysis.trade_date.isoformat()}"
+    )
+
+    assert response.status_code == 200
+    assert "already has an existing AAPL report" in response.text
+    assert "note-ready" in response.text
+
+
+def test_retry_failed_submission_requeues_job(db):
+    user = resolve_request_user(db, username="alice")
+    job = AnalysisQueue(
+        ticker="PLTR",
+        trade_date=date(2026, 4, 24),
+        priority=0,
+        queued_at=datetime(2026, 4, 24, 9, 0),
+        status="failed",
+        attempts=1,
+        completed_at=datetime(2026, 4, 24, 9, 10),
+        last_error="Provider quota exceeded.",
+        requested_by_user_id=user.id,
+    )
+    db.add(job)
+    db.flush()
+    request = AnalysisRequest(
+        user_id=user.id,
+        ticker="PLTR",
+        trade_date=job.trade_date,
+        queue_id=job.id,
+        source="web",
+        status="failed",
+        requested_at=datetime(2026, 4, 24, 9, 0),
+        completed_at=datetime(2026, 4, 24, 9, 10),
+        error_message="Provider quota exceeded.",
+    )
+    db.add(request)
+    db.commit()
+
+    response = _client(db).post(
+        f"/workspace/submissions/{request.id}/retry",
+        data={"user": "alice"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert 'hx-trigger="every 5s"' in response.text
+    db.refresh(job)
+    db.refresh(request)
+    assert job.status == "queued"
+    assert job.last_error is None
+    assert request.status == "queued"
+    assert request.error_message is None
+
+
 def test_queue_status_route_lists_jobs(db):
     user = resolve_request_user(db, username="alice")
     job = AnalysisQueue(
@@ -233,3 +306,38 @@ def test_queue_status_route_lists_jobs(db):
     assert "Queue status" in response.text
     assert "AAPL" in response.text
     assert "Queued" in response.text
+
+
+def test_queue_partial_polls_and_retry_action_for_active_and_failed_jobs(db):
+    user = resolve_request_user(db, username="alice")
+    db.add_all(
+        [
+            AnalysisQueue(
+                ticker="AMZN",
+                trade_date=date(2026, 5, 1),
+                priority=0,
+                queued_at=datetime(2026, 5, 1, 9, 0),
+                status="queued",
+                requested_by_user_id=user.id,
+            ),
+            AnalysisQueue(
+                ticker="PLTR",
+                trade_date=date(2026, 4, 24),
+                priority=0,
+                queued_at=datetime(2026, 4, 24, 9, 0),
+                status="failed",
+                attempts=1,
+                last_error="Provider quota exceeded.",
+                requested_by_user_id=user.id,
+            ),
+        ]
+    )
+    db.commit()
+
+    response = _client(db).get("/queue/partials/jobs")
+
+    assert response.status_code == 200
+    assert 'hx-trigger="every 5s"' in response.text
+    assert "AMZN" in response.text
+    assert "PLTR" in response.text
+    assert 'hx-post="/queue/' in response.text

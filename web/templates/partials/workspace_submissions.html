@@ -1,7 +1,7 @@
 <div
   id="workspace-submissions"
   {% if view.has_active_work %}
-  hx-get="/workspace/partials/submissions?user={{ view.user.username|urlencode }}"
+  hx-get="/workspace/partials/submissions?user={{ view.user.username|urlencode }}{% if view.filters.ticker %}&ticker={{ view.filters.ticker|urlencode }}{% endif %}{% if view.filters.status %}&status={{ view.filters.status|urlencode }}{% endif %}"
   hx-trigger="every 5s"
   hx-swap="outerHTML"
   {% endif %}
@@ -26,10 +26,26 @@
           <td><span class="badge status-{{ row.status }}">{{ row.status|replace("_", " ")|title }}</span></td>
           <td>{{ row.source }}</td>
           <td>
-            {% if row.analysis_id %}
+            {% if row.status == "failed" %}
+            {% if row.queue_id %}
+            <form
+              class="inline-form"
+              method="post"
+              action="/workspace/submissions/{{ row.id }}/retry"
+              hx-post="/workspace/submissions/{{ row.id }}/retry"
+              hx-target="#workspace-submissions"
+              hx-swap="outerHTML"
+            >
+              <input type="hidden" name="user" value="{{ view.user.username|e }}">
+              <input type="hidden" name="ticker" value="{{ view.filters.ticker or '' }}">
+              <input type="hidden" name="status" value="{{ view.filters.status or '' }}">
+              <button class="link-button" type="submit">Retry</button>
+            </form>
+            {% else %}
+            <span class="muted">Contact support</span>
+            {% endif %}
+            {% elif row.analysis_id %}
             <a href="/analysis/{{ row.analysis_id }}">View report →</a>
-            {% elif row.status == "failed" %}
-            <span class="muted">Retry in T04</span>
             {% else %}
             <span class="muted">Waiting</span>
             {% endif %}

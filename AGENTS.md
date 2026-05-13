@@ -17,7 +17,7 @@ outcome tracking, and a web UI. The core loop is:
 6. `core/memory_sync.py` syncs resolved DB lessons into TradingAgents memory
 7. `worker/runner.py` processes queued analyses with conservative concurrency and retry support
 8. `core/users.py` and `core/request_history.py` track who asked for shared canonical analyses
-9. Milestone 06 will add the FastAPI + Jinja2/HTMX web UI and charts
+9. Milestone 06 adds the FastAPI + Jinja2/HTMX web UI and charts
 
 Human-facing orientation starts in `README.md`. Local setup and CLI usage live in
 `docs/getting-started.md`; development workflow lives in `docs/development.md`. Full architecture
@@ -49,9 +49,9 @@ Detailed task lists and acceptance criteria:
 - `stocksage/cli.py` — Click commands: analyze, resolve, summary, list, leaderboard, models, queue
 - `api/app.py` — FastAPI app factory for Milestone 06
 - `api/deps.py` — DB session dependency wiring for routes and tests
-- `api/services.py` — route view-data assembly over core modules
-- `api/routes/web.py` — T01 route map for Research, Workspace, Analysis, Queue, and health
-- `web/templates/` — Jinja2 shell and page templates for M06
+- `api/services.py` — route view-data assembly over core modules, including web submission/retry helpers
+- `api/routes/web.py` — route handlers for Research, Workspace, Analysis, Queue, submission, retry, and health
+- `web/templates/` — Jinja2 shell, page templates, and HTMX partials for M06
 - `web/static/styles.css` — shared web UI styling
 - `cli/main.py` — compatibility wrapper for `python -m cli.main`
 - `alembic/env.py` — migrations wired to Settings.database_url + core.models.Base
@@ -63,7 +63,7 @@ Detailed task lists and acceptance criteria:
 - `docs/05-milestone.md` — accepted user identity + request history work
 - `docs/06-milestone.md` — planned web UI + charts work; current focus
 
-**Next action:** Continue Milestone 06 with T04 queue controls:
+**Next action:** Continue Milestone 06 with T05 Chart.js visualizations:
 ```bash
 uv run ruff check .
 uv run ruff format --check .
@@ -75,7 +75,7 @@ a 20-stock resolved validation batch. Milestone 03 is accepted after alpha-aware
 TradingAgents memory sync landed with tests. Milestone 04 is accepted after queue commands, worker
 processing, retries, stale-run recovery, and the queue migration landed with tests.
 Milestone 05 is accepted after adding `users`, `analysis_requests`, CLI user flags, queue
-attribution, migration backfill, and tests. Milestone 06 should build the web UI on the same shared
+attribution, migration backfill, and tests. Milestone 06 is building the web UI on the same shared
 canonical analysis model and M05 request history.
 
 ---

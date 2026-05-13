@@ -11,8 +11,8 @@ with useful M03 alpha-aware metrics and M05 user-scoped history.
 
 ## Status
 
-**In progress.** T00 design, T01 route foundation, T02 layout/navigation, and T03 core pages are
-implemented.
+**In progress.** T00 design, T01 route foundation, T02 layout/navigation, T03 core pages, and
+T04 queue controls are implemented.
 
 ---
 
@@ -76,12 +76,15 @@ rendering with Chart.js without changing the page hierarchy.
 
 ### T04 · Queue controls
 
-- [ ] Add New Analysis modal (single ticker + date; reuse detection note when report exists).
+- [x] Add New Analysis modal (single ticker + date; reuse detection note when report exists).
   Modal is triggered from the [+ Analyze] button; submits via POST and redirects to My Workspace.
-- [ ] Add retry action for failed submissions (in My Workspace and Queue Status pages).
-- [ ] Add Queue Status page (`/queue`): table of queued/running/failed items with HTMX auto-refresh.
+- [x] Add retry action for failed submissions (in My Workspace and Queue Status pages).
+- [x] Add Queue Status page (`/queue`): table of queued/running/failed items with HTMX auto-refresh.
   This page is not in primary navigation; link to it from the running-work indicator in My Workspace.
-- [ ] No batch enqueue form in this milestone.
+- [x] No batch enqueue form in this milestone.
+
+T04 keeps queue management deliberately narrow: one-stock submission from the modal, shared-report
+reuse detection before submit, queue-backed retry buttons, and polling only while work is active.
 
 ### T05 · Charts
 

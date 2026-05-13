@@ -112,6 +112,20 @@ a:hover {
   color: var(--slate);
 }
 
+.link-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
 .page {
   width: min(1180px, calc(100vw - 32px));
   margin: 0 auto;
@@ -161,6 +175,10 @@ a:hover {
 
 .workspace-filters {
   margin-bottom: 16px;
+}
+
+.inline-form {
+  display: inline;
 }
 
 label {
@@ -337,11 +355,18 @@ tbody tr:hover {
 }
 
 .live-note,
-.status-link {
+.status-link,
+.refresh-note {
   display: inline-flex;
   margin-bottom: 16px;
   color: var(--blue);
   font-weight: 700;
+}
+
+.refresh-note {
+  padding: 0 18px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .outcome-block {
@@ -527,6 +552,28 @@ tbody tr:hover {
 .form-grid {
   display: grid;
   padding: 18px;
+}
+
+.form-note {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--slate);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.note-ready,
+.note-running,
+.note-queued {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: var(--blue);
+}
+
+.note-new,
+.note-idle {
+  background: #f8fafc;
 }
 
 .form-actions {

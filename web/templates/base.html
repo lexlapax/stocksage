@@ -30,19 +30,43 @@
           <h2>Analyze a stock</h2>
           <a class="icon-link" href="#" aria-label="Close">×</a>
         </div>
-        <form class="form-grid" method="post" action="/analysis">
+        <form id="analysis-form" class="form-grid" method="post" action="/analysis">
           <label>
             <span>Ticker</span>
-            <input name="ticker" placeholder="AAPL" maxlength="16" required>
+            <input
+              id="analysis-ticker"
+              name="ticker"
+              placeholder="AAPL"
+              maxlength="16"
+              required
+              hx-get="/analysis/reuse-note"
+              hx-trigger="keyup changed delay:400ms"
+              hx-target="#reuse-note"
+              hx-include="#analysis-form"
+              hx-swap="outerHTML"
+            >
           </label>
           <label>
             <span>Analysis date</span>
-            <input name="trade_date" type="date">
+            <input
+              id="analysis-date"
+              name="trade_date"
+              type="date"
+              value="{{ today }}"
+              hx-get="/analysis/reuse-note"
+              hx-trigger="change"
+              hx-target="#reuse-note"
+              hx-include="#analysis-form"
+              hx-swap="outerHTML"
+            >
           </label>
           <label>
             <span>Run as</span>
             <input name="user" value="{{ current_user.username|e }}">
           </label>
+          <div id="reuse-note" class="form-note note-idle" aria-live="polite">
+            Enter a ticker and date to check for existing reports.
+          </div>
           <div class="form-actions">
             <button class="button primary" type="submit">Submit</button>
             <a class="button subtle" href="#">Cancel</a>
