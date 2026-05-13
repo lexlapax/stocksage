@@ -22,6 +22,8 @@ All notable changes to StockSage are tracked here.
 - User identity model with default local OS user resolution, `--user` auto-create/reuse, and strict existing-id `--userid` lookup.
 - Per-user `analysis_requests` history over shared canonical analyses, including queued work, reused analyses, failures, and migration backfill.
 - CLI attribution for `analyze`, `queue add`, and `queue add-batch`, plus user-scoped `list` and `queue list` filters.
+- FastAPI app factory, DB session dependency, T01 route map, and route tests for Research, Workspace, Analysis Report, Queue Status, New Analysis POST, and health.
+- Shared `core/submissions.py` helper for web submissions over the same canonical analysis and request-history model.
 - Unit and CLI integration tests covering analyzer parsing, ORM relationships, outcome resolution, trend analytics, and forced reruns.
 - Memory sync tests covering pending-entry resolution, fallback decision rendering, and idempotency.
 - Queue and worker tests covering enqueueing, duplicate protection, retry, failure, stale recovery, and worker persistence.
@@ -44,6 +46,7 @@ All notable changes to StockSage are tracked here.
 - `README.md` is now a concise project front door, with operational details moved to `docs/getting-started.md` and `docs/development.md`.
 - Roadmap now inserts M05 user identity and shared-analysis request history before moving web UI/charts to M06.
 - Active roadmap now marks M05 accepted and moves M06 web UI/charts into the next implementation slot.
+- FastAPI, Uvicorn, Jinja2, and form parsing dependencies are now first-class project dependencies for the web UI milestone.
 
 ### Known Gaps
 

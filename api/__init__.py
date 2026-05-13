@@ -1,0 +1,1 @@
+"""StockSage web app package."""

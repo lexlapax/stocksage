@@ -215,13 +215,11 @@ stocksage/
 │   └── runner.py              ← thread pool queue poller (Milestone 04)
 ├── api/
 │   ├── __init__.py
-│   ├── app.py                 ← FastAPI app factory (Milestone 06)
+│   ├── app.py                 ← FastAPI app factory
+│   ├── deps.py                ← DB session dependency wiring
+│   ├── services.py            ← route view-data assembly over core modules
 │   ├── routes/
-│   │   ├── analyses.py
-│   │   ├── queue.py
-│   │   └── outcomes.py
-│   └── schemas/
-│       └── analysis.py
+│   │   └── web.py             ← Research, Workspace, Analysis, Queue routes
 ├── web/
 │   └── templates/             ← Jinja2 HTML (Milestone 06)
 ├── alembic/
@@ -246,8 +244,8 @@ stocksage/
 | **05** | User Identity + Shared Analysis Ownership Foundation | accepted | `docs/05-milestone.md` |
 | **06** | FastAPI + Jinja2/HTMX Web UI + Charts | active next | `docs/06-milestone.md` |
 
-Milestone 06 starts with the review gate in `docs/06-ui-design.md`. Do not implement routes,
-templates, or CSS until the wireframe is accepted or revised.
+Milestone 06 started with the accepted review gate in `docs/06-ui-design.md`. Keep route and
+template work aligned with that wireframe as implementation continues.
 
 ---
 

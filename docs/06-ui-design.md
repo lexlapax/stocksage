@@ -377,7 +377,7 @@ a `<script>` tag.
 
 ---
 
-## Implementation Gate
+## Implementation Status
 
-Do not begin T01 (FastAPI routes), T02 (templates), or T03–T05 (data/charts) until this design
-is reviewed and accepted. Adjust here before writing code.
+This design was reviewed and accepted before T01 began. Keep adjusting this document when UX
+decisions change, and keep route/template implementation aligned with it.

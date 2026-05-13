@@ -44,8 +44,13 @@ Detailed task lists and acceptance criteria:
 - `core/queueing.py` — enqueue/list/retry/clear/claim queue operations
 - `core/users.py` — default OS user, `--user`, and `--userid` resolution
 - `core/request_history.py` — per-user request rows over shared canonical analyses and queue jobs
+- `core/submissions.py` — shared submission helper for web/CLI-style request attribution
 - `worker/runner.py` — queue worker with stale-running recovery and configurable worker count
 - `stocksage/cli.py` — Click commands: analyze, resolve, summary, list, leaderboard, models, queue
+- `api/app.py` — FastAPI app factory for Milestone 06
+- `api/deps.py` — DB session dependency wiring for routes and tests
+- `api/services.py` — route view-data assembly over core modules
+- `api/routes/web.py` — T01 route map for Research, Workspace, Analysis, Queue, and health
 - `cli/main.py` — compatibility wrapper for `python -m cli.main`
 - `alembic/env.py` — migrations wired to Settings.database_url + core.models.Base
 - `tests/` — unit and CLI integration coverage for Milestone 01/02/03/04 behavior
@@ -56,7 +61,7 @@ Detailed task lists and acceptance criteria:
 - `docs/05-milestone.md` — accepted user identity + request history work
 - `docs/06-milestone.md` — planned web UI + charts work; current focus
 
-**Next action:** Implement Milestone 06:
+**Next action:** Continue Milestone 06 with T02 Jinja2 layout and navigation:
 ```bash
 uv run ruff check .
 uv run ruff format --check .

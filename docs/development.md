@@ -28,6 +28,8 @@ uv run pytest
 
 Ruff is configured in [pyproject.toml](../pyproject.toml) and installed through the `dev`
 dependency group. Tests use in-memory SQLite and mock live network and LLM paths.
+FastAPI, Uvicorn, Jinja2, and form parsing dependencies are first-class project dependencies for
+Milestone 06.
 
 ## Database Changes
 
@@ -47,7 +49,7 @@ stocksage/  Import-safe package entry point for the CLI
 core/       ORM models, DB sessions, analyzer wrapper, outcomes, trends, users, requests
 cli/        Compatibility wrapper for python -m cli.main
 worker/     Async queue worker
-api/        FastAPI package placeholder for Milestone 06
+api/        FastAPI app factory, route dependencies, routes, and view-data assembly
 web/        Template placeholder for Milestone 06
 alembic/    Database migrations
 docs/       Project plan, usage docs, development guide, and milestone checklists

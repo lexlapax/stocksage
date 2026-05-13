@@ -11,8 +11,7 @@ with useful M03 alpha-aware metrics and M05 user-scoped history.
 
 ## Status
 
-**Planned / next.** Milestone 05 has established user identity and request attribution; this is the
-next implementation milestone.
+**In progress.** T00 design is accepted and T01 FastAPI route foundation is implemented.
 
 ---
 
@@ -21,8 +20,7 @@ next implementation milestone.
 - Milestone 03 accepted so web metrics use alpha-aware accuracy.
 - Milestone 04 accepted so the UI can enqueue and inspect background work.
 - Milestone 05 accepted so the UI can show user-scoped history over shared canonical analyses.
-- FastAPI optional dependencies installed through the project `api` extra or equivalent `uv`
-  dependency group.
+- FastAPI, Uvicorn, Jinja2, and python-multipart are first-class project dependencies.
 
 ---
 
@@ -39,12 +37,15 @@ Design spec: [06-ui-design.md](06-ui-design.md)
 
 ### T01 · FastAPI app foundation
 
-- [ ] Add an app factory under `api/`.
-- [ ] Wire database sessions through FastAPI dependencies.
-- [ ] Add routes for: health, Research landing (`/`), Ticker Intelligence (`/ticker/{ticker}`),
+- [x] Add an app factory under `api/`.
+- [x] Wire database sessions through FastAPI dependencies.
+- [x] Add routes for: health, Research landing (`/`), Ticker Intelligence (`/ticker/{ticker}`),
   Analysis Report (`/analysis/{id}`), My Workspace (`/workspace`), New Analysis (POST),
   and Queue Status (`/queue`, admin-only, not in primary nav).
-- [ ] Keep route handlers thin; use `core/` modules for business logic.
+- [x] Keep route handlers thin; use `core/` modules for business logic.
+
+T01 route responses are JSON-backed foundation responses. T02 will render the accepted wireframe
+with Jinja2 templates on the same route map.
 
 ### T02 · Jinja2 layout and navigation
 

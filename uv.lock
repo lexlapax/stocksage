@@ -2799,22 +2799,20 @@ source = { editable = "." }
 dependencies = [
     { name = "alembic" },
     { name = "click" },
+    { name = "fastapi" },
+    { name = "jinja2" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
+    { name = "python-multipart" },
     { name = "rich" },
     { name = "sqlalchemy" },
     { name = "tabulate" },
     { name = "tradingagents" },
+    { name = "uvicorn", extra = ["standard"] },
     { name = "yfinance" },
 ]
 
 [package.optional-dependencies]
-api = [
-    { name = "fastapi" },
-    { name = "jinja2" },
-    { name = "python-multipart" },
-    { name = "uvicorn", extra = ["standard"] },
-]
 test = [
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -2831,21 +2829,21 @@ dev = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
     { name = "click", specifier = ">=8.1" },
-    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.111" },
-    { name = "jinja2", marker = "extra == 'api'", specifier = ">=3.1" },
+    { name = "fastapi", specifier = ">=0.111" },
+    { name = "jinja2", specifier = ">=3.1" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "python-multipart", marker = "extra == 'api'", specifier = ">=0.0.9" },
+    { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "rich", specifier = ">=13.0" },
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "tabulate", specifier = ">=0.9" },
     { name = "tradingagents", git = "https://github.com/TauricResearch/TradingAgents" },
-    { name = "uvicorn", extras = ["standard"], marker = "extra == 'api'", specifier = ">=0.29" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.29" },
     { name = "yfinance", specifier = ">=0.2" },
 ]
-provides-extras = ["test", "api"]
+provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 dev = [

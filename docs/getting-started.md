@@ -108,6 +108,23 @@ uv run stocksage queue retry 12
 uv run stocksage queue retry --failed
 ```
 
+## Web App
+
+Milestone 06 serves the browser UI through FastAPI. The current T01 foundation exposes the accepted
+route map with JSON responses while T02 templates are still pending.
+
+```bash
+uv run alembic upgrade head
+uv run uvicorn api.app:app --reload
+```
+
+Open:
+
+- `http://127.0.0.1:8000/` — Research landing
+- `http://127.0.0.1:8000/workspace` — My Workspace for the current OS user
+- `http://127.0.0.1:8000/queue` — Queue Status
+- `http://127.0.0.1:8000/health` — health check
+
 The compatibility module entry point remains available:
 
 ```bash
